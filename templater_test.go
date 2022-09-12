@@ -7,32 +7,37 @@ import (
 	"github.com/mr-joshcrane/templater"
 )
 
-func TestGenerateTemplate(t *testing.T) {
+func TestGenerateTemplateGivenLowercaseTableOrProjectCorrectlyUppercases(t *testing.T) {
 	t.Parallel()
-	//"fixtures/data.json"
-
-	got := templater.GenerateTemplate("fixtures/data.json", "clickup", "tasks")
-
-	want := `{{ config(tags=['CLICKUP', 'TASKS']) }}
+	got := templater.GenerateTemplate("fixtures/data1.json", "project", "table")
+	want := `{{ config(tags=['PROJECT', 'TABLE']) }}
 
 SELECT
 	"V":id::STRING AS ID,
-	"V":name::STRING AS NAME,
+	"V":name::STRING AS NAME
+FROM
+	{{ source('PROJECT', 'TABLE') }}
+`
+	if want != got {
+		t.Fatal(cmp.Diff(want, got))
+	}
+}
+
+func TestGenerateTemplateGivenUnstructuredDataReturnsValidTemplate(t *testing.T) {
+	t.Parallel()
+	got := templater.GenerateTemplate("fixtures/data.json", "PROJECT", "TABLE")
+	want := `{{ config(tags=['PROJECT', 'TABLE']) }}
+
+SELECT
+	"V":id::STRING AS ID,
 	"V":orderindex::INTEGER AS ORDERINDEX,
-	"V":content::STRING AS CONTENT,
+	"V":floatedOrder::FLOAT AS FLOATEDORDER,
 	"V":status::OBJECT AS STATUS,
-	"V":priority::OBJECT AS PRIORITY,
 	"V":assignee::VARCHAR AS ASSIGNEE,
 	"V":task_count::ARRAY AS TASK_COUNT,
-	"V":due_date::STRING AS DUE_DATE,
-	"V":start_date::VARCHAR AS START_DATE,
-	"V":folder::OBJECT AS FOLDER,
-	"V":space::OBJECT AS SPACE,
-	"V":archived::BOOLEAN AS ARCHIVED,
-	"V":override_statuses::BOOLEAN AS OVERRIDE_STATUSES,
-	"V":permission_level::STRING AS PERMISSION_LEVEL,
+	"V":archived::BOOLEAN AS ARCHIVED
 FROM
-	{{ source('CLICKUP', 'TASKS') }}
+	{{ source('PROJECT', 'TABLE') }}
 `
 	if want != got {
 		t.Fatal(cmp.Diff(want, got))

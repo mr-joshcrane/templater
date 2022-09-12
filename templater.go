@@ -50,6 +50,11 @@ func GenerateTemplate(filePath string, project string, table string) string {
 		line := fmt.Sprintf("\t\"V\":%s::%s AS %s,\n", k, t, kFormat)
 		template.WriteString(line)
 	}
+	t := template.String()
+	commaIdx := strings.LastIndex(t, ",")
+	t = t[0:commaIdx] + t[commaIdx+1:]
+	template.Reset()
+	template.WriteString(t)
 	template.WriteString(fmt.Sprintf("FROM\n\t{{ source('%s', '%s') }}\n", project, table))
 	return template.String()
 }
