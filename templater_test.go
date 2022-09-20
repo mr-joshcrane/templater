@@ -16,8 +16,8 @@ func TestGenerateTemplateGivenLowercaseTableOrProjectCorrectlyUppercases(t *test
 	want := `{{ config(tags=['PROJECT', 'TABLE']) }}
 
 SELECT
-	"V":id::STRING AS ID,
-	"V":name::STRING AS NAME
+	"V":id::STRING AS ID
+	,"V":name::STRING AS NAME
 FROM
 	{{ source('PROJECT', 'TABLE') }}
 `
@@ -35,13 +35,13 @@ func TestGenerateTemplateGivenUnstructuredDataReturnsValidTemplate(t *testing.T)
 	want := `{{ config(tags=['PROJECT', 'TABLE']) }}
 
 SELECT
-	"V":id::STRING AS ID,
-	"V":orderindex::INTEGER AS ORDERINDEX,
-	"V":floatedOrder::FLOAT AS FLOATEDORDER,
-	"V":status::OBJECT AS STATUS,
-	"V":assignee::VARCHAR AS ASSIGNEE,
-	"V":task_count::ARRAY AS TASK_COUNT,
-	"V":archived::BOOLEAN AS ARCHIVED
+	"V":id::STRING AS ID
+	,"V":orderindex::INTEGER AS ORDERINDEX
+	,"V":floatedOrder::FLOAT AS FLOATEDORDER
+	,"V":status::OBJECT AS STATUS
+	,"V":assignee::VARCHAR AS ASSIGNEE
+	,"V":task_count::ARRAY AS TASK_COUNT
+	,"V":archived::BOOLEAN AS ARCHIVED
 FROM
 	{{ source('PROJECT', 'TABLE') }}
 `
