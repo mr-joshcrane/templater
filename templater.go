@@ -1,13 +1,20 @@
 package templater
 
 import (
+	"bytes"
+	"embed"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
+	"text/template"
 
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/encoding/json"
+)
+
+var (
+	//go:embed template.gohtml
+	fs embed.FS
 )
 
 var SnowflakeTypes = map[string]string{
@@ -20,18 +27,32 @@ var SnowflakeTypes = map[string]string{
 	"bool":   "BOOLEAN",
 }
 
+type Fields struct {
+	Name string
+	Type string
+}
+type Metadata struct {
+	Project string
+	Table   string
+	Fields  []Fields
+}
+
 func GenerateTemplate(filePath string, project string, table string) (string, error) {
-	var template strings.Builder
-	project = strings.ToUpper(project)
-	table = strings.ToUpper(table)
+	funcMap := template.FuncMap{
+		"ToUpper": strings.ToUpper,
+	}
+
+	tpl, err := template.New("template.gohtml").Funcs(funcMap).ParseFS(fs, "template.gohtml")
+	if err != nil {
+		return "", err
+	}
+
 	fileContents, err := os.ReadFile(filePath)
 	if err != nil {
-		fmt.Println(err)
 		return "", errors.New("unable to read file")
 	}
 	expr, err := json.Extract("", fileContents)
 	if err != nil {
-		fmt.Println(err)
 		return "", errors.New("unable to convert json to cue")
 	}
 	c := cuecontext.New()
@@ -42,23 +63,28 @@ func GenerateTemplate(filePath string, project string, table string) (string, er
 		return "", errors.New("unable to iterate through cue fields")
 	}
 
+	metadata := Metadata{
+		Project: strings.ToUpper(project),
+		Table:   strings.ToUpper(table),
+		Fields:  []Fields{},
+	}
+
 	for iter.Next() {
 		k := iter.Selector().String()
 		t := SnowflakeTypes[iter.Value().IncompleteKind().String()]
-		kFormat := strings.ToUpper(k)
-		line := fmt.Sprintf("\t\"V\":%s::%s AS %s,\n", k, t, kFormat)
-		template.WriteString(line)
+		metadata.Fields = append(metadata.Fields, Fields{
+			Name: k,
+			Type: t,
+		})
 	}
-	t := template.String()
-	if t == "" {
+	if len(metadata.Fields) == 0 {
 		return "", errors.New("empty JSON")
 	}
-	template.Reset()
-	commaIdx := strings.LastIndex(t, ",")
-	t = t[0:commaIdx] + t[commaIdx+1:]
-	template.WriteString(fmt.Sprintf("{{ config(tags=['%s', '%s']) }}\n\n", project, table))
-	template.WriteString("SELECT\n")
-	template.WriteString(t)
-	template.WriteString(fmt.Sprintf("FROM\n\t{{ source('%s', '%s') }}\n", project, table))
-	return template.String(), nil
+
+	var body bytes.Buffer
+	err = tpl.Execute(&body, metadata)
+	if err != nil {
+		return "", err
+	}
+	return body.String(), nil
 }

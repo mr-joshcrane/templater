@@ -1,0 +1,8 @@
+{{`{{`}} config(tags=['{{ .Project }}', '{{ .Table }}']) {{`}}`}}
+{{$first := true}}
+SELECT
+	{{- range .Fields }}
+	{{if $first}}{{$first = false}}{{else}},{{end}}"V":{{ .Name }}::{{ .Type }} AS {{ .Name | ToUpper }}
+	{{- end }}
+FROM
+	{{`{{`}} source('{{ .Project }}', '{{ .Table }}') {{`}}`}}
