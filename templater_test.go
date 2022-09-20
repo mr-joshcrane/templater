@@ -1,7 +1,6 @@
 package templater_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -46,8 +45,6 @@ SELECT
 FROM
 	{{ source('PROJECT', 'TABLE') }}
 `
-	fmt.Println(want)
-	fmt.Println(got)
 	if want != got {
 		t.Fatal(cmp.Diff(want, got))
 	}
