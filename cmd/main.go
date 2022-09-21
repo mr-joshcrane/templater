@@ -20,10 +20,9 @@ func main() {
 	var contents []byte
 	var err error
 
-	if strings.HasSuffix(filePath, ".csv") {
+	contents, err = os.ReadFile(filePath)
+	if err == nil && strings.HasSuffix(filePath, ".csv") {
 		contents, err = templater.CsvToJson(contents)
-	} else {
-		contents, err = os.ReadFile(filePath)
 	}
 
 	if err != nil {
