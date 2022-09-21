@@ -49,11 +49,11 @@ func TestGenerateTemplateGivenCsv(t *testing.T) {
 	want := `{{ config(tags=['PROJECT', 'TABLE']) }}
 
 SELECT
-	"V":id::STRING AS ID
+	"V":fieldbuf::STRING AS FIELDBUF
+	,"V":id::STRING AS ID
 	,"V":orderindex::STRING AS ORDERINDEX
-	,"V":value::STRING AS VALUE
 	,"V":quantity::STRING AS QUANTITY
-	,"V":fieldbuf::STRING AS FIELDBUF
+	,"V":value::STRING AS VALUE
 FROM
 	{{ source('PROJECT', 'TABLE') }}
 `
