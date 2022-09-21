@@ -1,15 +1,24 @@
 package templater_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mr-joshcrane/templater"
 )
 
+func must(bs []byte, err error) []byte {
+	if err != nil {
+		panic(err)
+	}
+	return bs
+}
+
 func TestGenerateTemplateGivenLowercaseTableOrProjectCorrectlyUppercases(t *testing.T) {
 	t.Parallel()
-	got, err := templater.GenerateTemplate("fixtures/data1.json", "project", "table")
+	contents := must(os.ReadFile("fixtures/data1.json"))
+	got, err := templater.GenerateTemplate(contents, "project", "table")
 	if err != nil {
 		t.Fatalf("wasn't expecting error, but got %v", err)
 	}
@@ -26,9 +35,37 @@ FROM
 	}
 }
 
+func TestGenerateTemplateGivenCsv(t *testing.T) {
+	t.Parallel()
+	csvContents := must(os.ReadFile("fixtures/data.csv"))
+	contents, err := templater.CsvToJson(csvContents)
+	if err != nil {
+		t.Fatalf("wasn't expecting error, but got %v", err)
+	}
+	got, err := templater.GenerateTemplate(contents, "project", "table")
+	if err != nil {
+		t.Fatalf("wasn't expecting error, but got %v", err)
+	}
+	want := `{{ config(tags=['PROJECT', 'TABLE']) }}
+
+SELECT
+	"V":id::STRING AS ID
+	,"V":orderindex::STRING AS ORDERINDEX
+	,"V":value::STRING AS VALUE
+	,"V":quantity::STRING AS QUANTITY
+	,"V":fieldbuf::STRING AS FIELDBUF
+FROM
+	{{ source('PROJECT', 'TABLE') }}
+`
+	if want != got {
+		t.Fatal(cmp.Diff(want, got))
+	}
+}
+
 func TestGenerateTemplateGivenUnstructuredDataReturnsValidTemplate(t *testing.T) {
 	t.Parallel()
-	got, err := templater.GenerateTemplate("fixtures/data.json", "PROJECT", "TABLE")
+	contents := must(os.ReadFile("fixtures/data.json"))
+	got, err := templater.GenerateTemplate(contents, "PROJECT", "TABLE")
 	if err != nil {
 		t.Fatalf("wasn't expecting error, but got %v", err)
 	}
@@ -52,7 +89,8 @@ FROM
 
 func TestGenerateOnEmptyJSONShouldReturnEmptyJSONError(t *testing.T) {
 	t.Parallel()
-	_, err := templater.GenerateTemplate("fixtures/data2.json", "PROJECT", "TABLE")
+	contents := must(os.ReadFile("fixtures/data2.json"))
+	_, err := templater.GenerateTemplate(contents, "PROJECT", "TABLE")
 	if err.Error() != "empty JSON" {
 		t.Fatal(err.Error())
 	}
@@ -60,7 +98,8 @@ func TestGenerateOnEmptyJSONShouldReturnEmptyJSONError(t *testing.T) {
 
 func TestGenerateOnInvalidJSONShouldReturnInvalidJSONError(t *testing.T) {
 	t.Parallel()
-	_, err := templater.GenerateTemplate("fixtures/data3.json", "PROJECT", "TABLE")
+	contents := must(os.ReadFile("fixtures/data3.json"))
+	_, err := templater.GenerateTemplate(contents, "PROJECT", "TABLE")
 	if err.Error() != "unable to convert json to cue" {
 		t.Fatal(err.Error())
 	}

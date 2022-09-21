@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/mr-joshcrane/templater"
 )
@@ -15,7 +16,22 @@ func main() {
 	filePath := os.Args[1]
 	project := os.Args[2]
 	table := os.Args[3]
-	template, err := templater.GenerateTemplate(filePath, project, table)
+
+	var contents []byte
+	var err error
+
+	if strings.HasSuffix(filePath, ".csv") {
+		contents, err = templater.CsvToJson(contents)
+	} else {
+		contents, err = os.ReadFile(filePath)
+	}
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
+	}
+
+	template, err := templater.GenerateTemplate(contents, project, table)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
