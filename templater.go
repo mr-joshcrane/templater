@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"embed"
 	"errors"
-	"os"
 	"strings"
 	"text/template"
 
@@ -37,7 +36,7 @@ type Metadata struct {
 	Fields  []Fields
 }
 
-func GenerateTemplate(filePath string, project string, table string) (string, error) {
+func GenerateTemplate(contents []byte, project string, table string) (string, error) {
 	funcMap := template.FuncMap{
 		"ToUpper": strings.ToUpper,
 	}
@@ -47,11 +46,7 @@ func GenerateTemplate(filePath string, project string, table string) (string, er
 		return "", err
 	}
 
-	fileContents, err := os.ReadFile(filePath)
-	if err != nil {
-		return "", errors.New("unable to read file")
-	}
-	expr, err := json.Extract("", fileContents)
+	expr, err := json.Extract("", contents)
 	if err != nil {
 		return "", errors.New("unable to convert json to cue")
 	}
