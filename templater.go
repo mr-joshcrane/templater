@@ -47,10 +47,14 @@ type Metadata struct {
 
 func GenerateTemplate(filePaths []string) error {
 	c := cuecontext.New()
-	err := os.Mkdir("output", 0644)
+	_, err := os.Stat("output")
 	if err != nil {
-		return err
+		err := os.Mkdir("output", 0777)
+		if err != nil {
+			return err
+		}
 	}
+
 	tables := make(map[string]Table)
 	metadata := Metadata{
 		Tables: tables,
@@ -143,26 +147,37 @@ func GenerateTemplate(filePaths []string) error {
 			return err
 		}
 		filename := fmt.Sprintf("output/%s.sql", table.TableName)
-		os.WriteFile(filename, body.Bytes(), 0644)
+		err = os.WriteFile(filename, body.Bytes(), 0644)
+		if err != nil {
+			return err
+		}
 	}
 
 	transformModel, err := generateTransform(c, metadata)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	os.WriteFile("output/transform_schema.yml", []byte(transformModel), 0644)
+	err = os.WriteFile("output/transform_schema.yml", []byte(transformModel), 0644)
+	if err != nil {
+		return err
+	}
 	publicModel, err := generatePublic(c, metadata)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	os.WriteFile("output/public_schema.yml", []byte(publicModel), 0644)
-
+	err = os.WriteFile("output/public_schema.yml", []byte(publicModel), 0644)
+	if err != nil {
+		return err
+	}
 	sourceModel, err := generateSources(c, metadata.Tables, projectName)
 	if err != nil {
 		panic(err)
 	}
-	os.WriteFile("output/source_schema.yml", []byte(sourceModel), 0644)
+	err = os.WriteFile("output/source_schema.yml", []byte(sourceModel), 0644)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
