@@ -1,8 +1,8 @@
-{{`{{`}} config(tags=['{{ .Project }}', '{{ .Table }}']) {{`}}`}}
+{{`{{`}} config(tags=['{{ .Project }}', '{{ .TableName }}']) {{`}}`}}
 {{$first := true}}
 SELECT
 	{{- range .Fields }}
-	{{if $first}}{{$first = false}}{{else}},{{end}}"V":{{ .Name }}::{{ .Type }} AS {{ .Name | ToUpper }}
+	{{if $first}}{{$first = false}}{{else}},{{end}}{{ .Name }}::{{ .Type }} AS {{ .Name | ToUpper | TrimBrackets | Strip | TrimLeft | SpaceReplace }}
 	{{- end }}
 FROM
-	{{`{{`}} source('{{ .Project }}', '{{ .Table }}') {{`}}`}}
+	{{`{{`}} source('{{ .Project }}', '{{ .TableName }}') {{`}}`}}

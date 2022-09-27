@@ -2,25 +2,17 @@ package templater
 
 import (
 	"bytes"
-	"encoding/csv"
-	"encoding/json"
+
+	"github.com/go-gota/gota/dataframe"
 )
 
 func CsvToJson(contents []byte) ([]byte, error) {
-	rows, err := csv.NewReader(bytes.NewReader(contents)).Read()
+	buf := bytes.NewBuffer([]byte{})
+	reader := bytes.NewReader(contents)
+	df := dataframe.ReadCSV(reader, dataframe.WithLazyQuotes(true))
+	err := df.WriteJSON(buf)
 	if err != nil {
 		return nil, err
 	}
-
-	m := map[string]any{}
-	for _, k := range rows {
-		m[k] = ""
-	}
-
-	jsonString, err := json.Marshal(m)
-	if err != nil {
-		return nil, err
-	}
-
-	return jsonString, nil
+	return buf.Bytes(), nil
 }
