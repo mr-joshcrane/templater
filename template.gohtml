@@ -2,7 +2,7 @@
 {{$first := true}}
 SELECT
 	{{- range .Fields }}
-	{{if $first}}{{$first = false}}{{else}},{{end}}{{ .Name }}::{{ .Type }} AS {{ .Name | ToUpper | TrimBrackets | Strip | TrimLeft | SpaceReplace }}
+	{{if $first}}{{$first = false}}{{else}},{{end}}{{ .Name | StripQuotes |  ReQuote }}::{{ .Type }} AS {{ .Name | ToUpper | TrimBrackets | Strip | TrimLeft | SpaceReplace }}
 	{{- end }}
 FROM
 	{{`{{`}} source('{{ .Project }}', '{{ .TableName }}') {{`}}`}}

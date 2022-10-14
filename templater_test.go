@@ -4,103 +4,49 @@ import (
 	"os"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/rogpeppe/go-internal/testscript"
+
 	"github.com/mr-joshcrane/templater"
 )
 
-func must(bs []byte, err error) []byte {
-	if err != nil {
-		panic(err)
-	}
-	return bs
+func TestMain(m *testing.M) {
+	os.Exit(testscript.RunMain(m, map[string]func() int{
+		"main": templater.Main,
+	}))
 }
 
-func TestGenerateTemplateGivenLowercaseTableOrProjectCorrectlyUppercases(t *testing.T) {
+func TestScript(t *testing.T) {
 	t.Parallel()
-	contents := must(os.ReadFile("fixtures/data1.json"))
-	got, err := templater.GenerateTemplate(contents, "project", "table")
-	if err != nil {
-		t.Fatalf("wasn't expecting error, but got %v", err)
-	}
-	want := `{{ config(tags=['PROJECT', 'TABLE']) }}
-
-SELECT
-	"V":id::STRING AS ID
-	,"V":name::STRING AS NAME
-FROM
-	{{ source('PROJECT', 'TABLE') }}
-`
-	if want != got {
-		t.Fatal(cmp.Diff(want, got))
-	}
+	testscript.Run(t, testscript.Params{Dir: "testdata/script"})
 }
 
-func TestGenerateTemplateGivenCsv(t *testing.T) {
-	t.Parallel()
-	csvContents := must(os.ReadFile("fixtures/data.csv"))
-	contents, err := templater.CsvToJson(csvContents)
-	if err != nil {
-		t.Fatalf("wasn't expecting error, but got %v", err)
-	}
-	got, err := templater.GenerateTemplate(contents, "project", "table")
-	if err != nil {
-		t.Fatalf("wasn't expecting error, but got %v", err)
-	}
-	want := `{{ config(tags=['PROJECT', 'TABLE']) }}
 
-SELECT
-	"V":fieldbuf::STRING AS FIELDBUF
-	,"V":id::STRING AS ID
-	,"V":orderindex::STRING AS ORDERINDEX
-	,"V":quantity::STRING AS QUANTITY
-	,"V":value::STRING AS VALUE
-FROM
-	{{ source('PROJECT', 'TABLE') }}
-`
-	if want != got {
-		t.Fatal(cmp.Diff(want, got))
-	}
-}
-
-func TestGenerateTemplateGivenUnstructuredDataReturnsValidTemplate(t *testing.T) {
-	t.Parallel()
-	contents := must(os.ReadFile("fixtures/data.json"))
-	got, err := templater.GenerateTemplate(contents, "PROJECT", "TABLE")
-	if err != nil {
-		t.Fatalf("wasn't expecting error, but got %v", err)
-	}
-	want := `{{ config(tags=['PROJECT', 'TABLE']) }}
-
-SELECT
-	"V":id::STRING AS ID
-	,"V":orderindex::INTEGER AS ORDERINDEX
-	,"V":floatedOrder::FLOAT AS FLOATEDORDER
-	,"V":status::OBJECT AS STATUS
-	,"V":assignee::VARCHAR AS ASSIGNEE
-	,"V":task_count::ARRAY AS TASK_COUNT
-	,"V":archived::BOOLEAN AS ARCHIVED
-FROM
-	{{ source('PROJECT', 'TABLE') }}
-`
-	if want != got {
-		t.Fatal(cmp.Diff(want, got))
-	}
-}
-
-func TestGenerateOnEmptyJSONShouldReturnEmptyJSONError(t *testing.T) {
-	t.Parallel()
-	contents := must(os.ReadFile("fixtures/data2.json"))
-	_, err := templater.GenerateTemplate(contents, "PROJECT", "TABLE")
-	if err.Error() != "empty JSON" {
-		t.Fatal(err.Error())
-	}
-}
-
-func TestGenerateOnInvalidJSONShouldReturnInvalidJSONError(t *testing.T) {
-	t.Parallel()
-	contents := must(os.ReadFile("fixtures/data3.json"))
-	_, err := templater.GenerateTemplate(contents, "PROJECT", "TABLE")
-	if err.Error() != "unable to convert json to cue" {
-		t.Fatal(err.Error())
-	}
-}
+// TestScript -> Setup of files -> Should produce some outcome
+// Generate template:
+// creates a new context, then creates an output folder if one does not exist
+// func map for string functions
+// run the functions over a template, gohtml return a TEMPLATE
+// determine the project name
+// for each of the files:
+//		read the files contents
+//		attempt to convert it to json
+//		determine the tablename (from the file name)
+//		convert json to cue
+//		create an iterator
+//      create state to store data (?)
+//     	for type  in iterator
+//			unify it with the empty type (which will give us the type) (?)
+//			iterate through the fields again
+//			store the type if new
+//			supercede the type if insufficiently complex
+//
+//		if the length of the type map is 0, return error because empty json
+// 		append the key and the type to a table fields entry
+//		given table information, execute the template
+//		write out the template
+//		given the metadata, generate the transform
+//		write to disk
+//		given the metadata, generate the public
+//		write to disk
+//		given the metadata, generate the transform
+//		write to disk

@@ -1,0 +1,103 @@
+cd PROJECT
+exec main
+
+cmp output/BASEBALL.sql expected/BASEBALL.sql
+cmp output/FREQUENCY.sql expected/FREQUENCY.sql
+cmp output/public_schema.yml expected/public_schema.yml
+cmp output/transform_schema.yml expected/transform_schema.yml
+cmp output/source_schema.yml expected/source_schema.yml
+
+
+-- PROJECT/BASEBALL.csv --
+"Team","Payroll(millions)","Wins"
+"Nationals",81.34,98
+"Reds",82.20,97
+"Yankees",197.96,95
+
+-- PROJECT/FREQUENCY.csv --
+Letter,Frequency,Percentage
+"A",24373121,8.1
+"B",4762938,1.6
+"C",8982417,3.0
+
+
+-- PROJECT/expected/public_schema.yml --
+version: 2
+models:
+  - name: BASEBALL
+    description: 'TODO: Description for BASEBALL'
+    tests:
+      dbt_utils.equal_rowcount:
+        compare_model: ""
+    columns:
+      - name: PAYROLL_MILLIONS
+        description: 'TODO: Description for PAYROLL_MILLIONS'
+        tests:
+          - not_null
+      - name: TEAM
+        description: 'TODO: Description for TEAM'
+        tests:
+          - not_null
+      - name: WINS
+        description: 'TODO: Description for WINS'
+        tests:
+          - not_null
+  - name: FREQUENCY
+    description: 'TODO: Description for FREQUENCY'
+    tests:
+      dbt_utils.equal_rowcount:
+        compare_model: ""
+    columns:
+      - name: FREQUENCY
+        description: 'TODO: Description for FREQUENCY'
+        tests:
+          - not_null
+      - name: LETTER
+        description: 'TODO: Description for LETTER'
+        tests:
+          - not_null
+      - name: PERCENTAGE
+        description: 'TODO: Description for PERCENTAGE'
+        tests:
+          - not_null
+-- PROJECT/expected/transform_schema.yml --
+version: 2
+models:
+  - name: BASEBALL
+    columns:
+      - name: PAYROLL_MILLIONS
+      - name: TEAM
+      - name: WINS
+  - name: FREQUENCY
+    columns:
+      - name: FREQUENCY
+      - name: LETTER
+      - name: PERCENTAGE
+-- PROJECT/expected/source_schema.yml --
+version: 2
+sources:
+  - name: PROJECT
+    schema: STAGING
+    tables:
+      - name: BASEBALL
+        description: 'TODO: BASEBALL DESCRIPTION'
+      - name: FREQUENCY
+        description: 'TODO: FREQUENCY DESCRIPTION'
+-- PROJECT/expected/BASEBALL.sql --
+{{ config(tags=['PROJECT', 'BASEBALL']) }}
+
+SELECT
+	"Payroll(millions)"::FLOAT AS PAYROLL_MILLIONS
+	,"Team"::STRING AS TEAM
+	,"Wins"::INTEGER AS WINS
+FROM
+	{{ source('PROJECT', 'BASEBALL') }}
+-- PROJECT/expected/FREQUENCY.sql --
+{{ config(tags=['PROJECT', 'FREQUENCY']) }}
+
+SELECT
+	"Frequency"::INTEGER AS FREQUENCY
+	,"Letter"::STRING AS LETTER
+	,"Percentage"::FLOAT AS PERCENTAGE
+FROM
+	{{ source('PROJECT', 'FREQUENCY') }}

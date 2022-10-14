@@ -2,7 +2,7 @@ package templater
 
 import (
 	"fmt"
-
+	"sort"
 	"cuelang.org/go/cue"
 	"cuelang.org/go/encoding/yaml"
 )
@@ -24,13 +24,10 @@ type Sources struct {
 }
 
 type TransformColumn struct {
-	Name  string   `yaml:"name"`
-	Tests []string `yaml:"tests"`
-}
+	Name  string   `yaml:"name"`}
 
 type TransformModel struct {
 	Name    string            `yaml:"name"`
-	Tests   []string          `yaml:"tests"`
 	Columns []TransformColumn `yaml:"columns"`
 }
 
@@ -73,17 +70,20 @@ func generateTransform(c *cue.Context, metadata Metadata) (string, error) {
 	for _, v := range metadata.Tables {
 		m := TransformModel{}
 		m.Name = v.TableName
-		m.Tests = []string{"test"}
 		for k := range v.TypeMap {
 			k = formatKey(k)
 			col := TransformColumn{
 				Name:  k,
-				Tests: []string{"not_null"},
 			}
 			m.Columns = append(m.Columns, col)
+			sort.Slice(m.Columns, func(i, j int) bool {
+				return m.Columns[i].Name < m.Columns[j].Name
+			})
 		}
-
 		z.Models = append(z.Models, m)
+		sort.Slice(z.Models, func(i, j int) bool {
+			return z.Models[i].Name < z.Models[j].Name
+		})
 	}
 
 	cModel := c.Encode(z)
@@ -111,8 +111,14 @@ func generatePublic(c *cue.Context, metadata Metadata) (string, error) {
 			}
 			m.Columns = append(m.Columns, col)
 		}
+		sort.Slice(m.Columns, func(i, j int) bool {
+			return m.Columns[i].Name < m.Columns[j].Name
+		})
 		z.Models = append(z.Models, m)
 	}
+	sort.Slice(z.Models, func(i, j int) bool {
+		return z.Models[i].Name < z.Models[j].Name
+	})
 	cModel := c.Encode(z)
 	yaml, err := yaml.Encode(cModel)
 	if err != nil {
@@ -134,7 +140,11 @@ func generateSources(c *cue.Context, tables map[string]Table, projectName string
 			Description: fmt.Sprintf("TODO: %s DESCRIPTION", k),
 		}
 		s.Tables = append(s.Tables, t)
+		sort.Slice(s.Tables, func(i, j int) bool {
+			return s.Tables[i].Name < s.Tables[j].Name
+		})
 	}
+
 	z.Sources = []Source{s}
 	sModel := c.Encode(z)
 	yaml, err := yaml.Encode(sModel)
