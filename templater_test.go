@@ -20,7 +20,6 @@ func TestScript(t *testing.T) {
 	testscript.Run(t, testscript.Params{Dir: "testdata/script"})
 }
 
-
 // TestScript -> Setup of files -> Should produce some outcome
 // Generate template:
 // creates a new context, then creates an output folder if one does not exist

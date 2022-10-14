@@ -1,10 +1,10 @@
 package templater
 
 import (
-	"fmt"
-	"sort"
 	"cuelang.org/go/cue"
 	"cuelang.org/go/encoding/yaml"
+	"fmt"
+	"sort"
 )
 
 type SourceTable struct {
@@ -24,7 +24,8 @@ type Sources struct {
 }
 
 type TransformColumn struct {
-	Name  string   `yaml:"name"`}
+	Name string `yaml:"name"`
+}
 
 type TransformModel struct {
 	Name    string            `yaml:"name"`
@@ -73,7 +74,7 @@ func generateTransform(c *cue.Context, metadata Metadata) (string, error) {
 		for k := range v.TypeMap {
 			k = formatKey(k)
 			col := TransformColumn{
-				Name:  k,
+				Name: k,
 			}
 			m.Columns = append(m.Columns, col)
 			sort.Slice(m.Columns, func(i, j int) bool {

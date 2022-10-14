@@ -8,8 +8,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"sort"
+	"strings"
 	"text/template"
 
 	"cuelang.org/go/cue"
@@ -68,8 +68,8 @@ func GenerateTemplate(filePaths []string) error {
 		"TrimBrackets": func(s string) string { return strings.ReplaceAll(s, `(`, " ") },
 		"TrimLeft":     func(s string) string { return strings.TrimLeft(s, ` `) },
 		"SpaceReplace": func(s string) string { return strings.ReplaceAll(s, ` `, `_`) },
-		"StripQuotes":        func(s string) string { return strings.ReplaceAll(s, "\"", "") },
-		"ReQuote":        func(s string) string { return fmt.Sprintf("\"%s\"", s) },
+		"StripQuotes":  func(s string) string { return strings.ReplaceAll(s, "\"", "") },
+		"ReQuote":      func(s string) string { return fmt.Sprintf("\"%s\"", s) },
 	}
 
 	tpl, err := template.New("template.gohtml").Funcs(funcMap).ParseFS(fs, "template.gohtml")
@@ -146,7 +146,7 @@ func GenerateTemplate(filePaths []string) error {
 		}
 
 		var body bytes.Buffer
-		sort.Slice(table.Fields, func(i,j int) bool {
+		sort.Slice(table.Fields, func(i, j int) bool {
 			return table.Fields[i].Name < table.Fields[j].Name
 		})
 		err = tpl.Execute(&body, table)
