@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/rogpeppe/go-internal/testscript"
 
 	"github.com/mr-joshcrane/templater"
@@ -18,6 +19,54 @@ func TestMain(m *testing.M) {
 func TestScript(t *testing.T) {
 	t.Parallel()
 	testscript.Run(t, testscript.Params{Dir: "testdata/script"})
+}
+
+func TestTagStatementGeneratesCorrectly(t *testing.T) {
+	t.Parallel()
+	PROJECT := "A_ProjectName"
+	TABLE := "A_TableName"
+	got := templater.GenerateTagsSQL(PROJECT, TABLE)
+	want := "{{ config(tags=['A_PROJECTNAME', 'A_TABLENAME']) }}"
+	if want != got {
+		t.Fatalf(cmp.Diff(want, got))
+	}
+}
+
+func TestColumnStatementGeneratesCorrectly(t *testing.T) {
+	t.Parallel()
+	fields := []templater.Field{
+		{
+			Name: "Team",
+			Type: "STRING",
+		},
+		{
+			Name: "Payroll(millions)",
+			Type: "FLOAT",
+		},
+		{
+			Name: "Wins",
+			Type: "INTEGER",
+		},
+	}
+	got := templater.GenerateColumnsSQL(fields)
+	want := `  "Payroll(millions)"::FLOAT AS PAYROLL_MILLIONS
+  ,"Team"::STRING AS TEAM
+  ,"Wins"::INTEGER AS WINS`
+	if want != got {
+		t.Fatalf(cmp.Diff(want, got))
+	}
+}
+
+
+func TestSourceStatementGeneratesCorrectly(t *testing.T) {
+	t.Parallel()
+	PROJECT := "A_ProjectName"
+	TABLE := "A_TableName"
+	got := templater.GenerateSourceSQL(PROJECT, TABLE)
+	want := "  {{ source('A_PROJECTNAME', 'A_TABLENAME') }}"
+	if want != got {
+		t.Fatalf(cmp.Diff(want, got))
+	}
 }
 
 // TestScript -> Setup of files -> Should produce some outcome

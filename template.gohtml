@@ -1,8 +1,5 @@
-{{`{{`}} config(tags=['{{ .Project }}', '{{ .TableName }}']) {{`}}`}}
-{{$first := true}}
+{{ .Tags }}
 SELECT
-	{{- range .Fields }}
-	{{if $first}}{{$first = false}}{{else}},{{end}}{{ .Name | StripQuotes |  ReQuote }}::{{ .Type }} AS {{ .Name | ToUpper | TrimBrackets | Strip | TrimLeft | SpaceReplace }}
-	{{- end }}
+{{ .Columns }}
 FROM
-	{{`{{`}} source('{{ .Project }}', '{{ .TableName }}') {{`}}`}}
+{{ .Source }}

@@ -85,19 +85,17 @@ sources:
         description: 'TODO: FREQUENCY DESCRIPTION'
 -- PROJECT/expected/BASEBALL.sql --
 {{ config(tags=['PROJECT', 'BASEBALL']) }}
-
 SELECT
-	"Payroll(millions)"::FLOAT AS PAYROLL_MILLIONS
-	,"Team"::STRING AS TEAM
-	,"Wins"::INTEGER AS WINS
+  "Payroll(millions)"::FLOAT AS PAYROLL_MILLIONS
+  ,"Team"::STRING AS TEAM
+  ,"Wins"::INTEGER AS WINS
 FROM
-	{{ source('PROJECT', 'BASEBALL') }}
+  {{ source('PROJECT', 'BASEBALL') }}
 -- PROJECT/expected/FREQUENCY.sql --
 {{ config(tags=['PROJECT', 'FREQUENCY']) }}
-
 SELECT
-	"Frequency"::INTEGER AS FREQUENCY
-	,"Letter"::STRING AS LETTER
-	,"Percentage"::FLOAT AS PERCENTAGE
+  "Frequency"::INTEGER AS FREQUENCY
+  ,"Letter"::STRING AS LETTER
+  ,"Percentage"::FLOAT AS PERCENTAGE
 FROM
-	{{ source('PROJECT', 'FREQUENCY') }}
+  {{ source('PROJECT', 'FREQUENCY') }}

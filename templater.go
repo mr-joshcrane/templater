@@ -37,6 +37,12 @@ type Field struct {
 	Type string
 }
 
+type SQLTemplate struct {
+	Tags string
+	Columns string
+	Source string
+}
+
 type Table struct {
 	TableName string
 	Project   string
@@ -45,6 +51,31 @@ type Table struct {
 }
 type Metadata struct {
 	Tables map[string]Table
+}
+
+func GenerateTagsSQL(project, table string) string {
+	return fmt.Sprintf("{{ config(tags=['%s', '%s']) }}", strings.ToUpper(project), strings.ToUpper(table))
+}
+
+func GenerateSourceSQL(project, table string) string {
+	return fmt.Sprintf("  {{ source('%s', '%s') }}", strings.ToUpper(project), strings.ToUpper(table))
+}
+
+func GenerateColumnsSQL(fields []Field) string {
+	column_data := ""
+	sort.Slice(fields, func(i, j int) bool {
+		return fields[i].Name < fields[j].Name
+	})
+	for _, field := range fields {
+		column_data += fmt.Sprintf(`  ,"%s"::%s AS %s`, field.Name, field.Type, formatKey(field.Name))
+		column_data += "\n"
+	}
+	// strip the first comma out
+	column_data = strings.Replace(column_data, ",", "", 1)
+	// strip the last new line out
+	column_data = column_data[0:len(column_data)-1]
+
+	return column_data
 }
 
 func GenerateTemplate(filePaths []string) error {
@@ -62,17 +93,7 @@ func GenerateTemplate(filePaths []string) error {
 		Tables: tables,
 	}
 
-	funcMap := template.FuncMap{
-		"ToUpper":      strings.ToUpper,
-		"Strip":        strip,
-		"TrimBrackets": func(s string) string { return strings.ReplaceAll(s, `(`, " ") },
-		"TrimLeft":     func(s string) string { return strings.TrimLeft(s, ` `) },
-		"SpaceReplace": func(s string) string { return strings.ReplaceAll(s, ` `, `_`) },
-		"StripQuotes":  func(s string) string { return strings.ReplaceAll(s, "\"", "") },
-		"ReQuote":      func(s string) string { return fmt.Sprintf("\"%s\"", s) },
-	}
-
-	tpl, err := template.New("template.gohtml").Funcs(funcMap).ParseFS(fs, "template.gohtml")
+	tpl, err := template.New("template.gohtml").ParseFS(fs, "template.gohtml")
 	if err != nil {
 		return err
 	}
@@ -139,6 +160,7 @@ func GenerateTemplate(filePaths []string) error {
 		}
 
 		for k, v := range table.TypeMap {
+			k = strings.ReplaceAll(k, `"`, ``)
 			table.Fields = append(table.Fields, Field{
 				Name: k,
 				Type: v,
@@ -149,7 +171,14 @@ func GenerateTemplate(filePaths []string) error {
 		sort.Slice(table.Fields, func(i, j int) bool {
 			return table.Fields[i].Name < table.Fields[j].Name
 		})
-		err = tpl.Execute(&body, table)
+
+		sql_template := SQLTemplate{
+			Tags: GenerateTagsSQL(table.Project, table.TableName),
+			Columns: GenerateColumnsSQL(table.Fields),
+			Source: GenerateSourceSQL(table.Project, table.TableName), 
+		}
+
+		err = tpl.Execute(&body, sql_template)
 		if err != nil {
 			return err
 		}
@@ -223,18 +252,17 @@ func Main() int {
 		fmt.Println(err)
 	}
 	var files []string
-	dir, _ := os.ReadDir(workingDir)
+	dir, err := os.ReadDir(workingDir)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		return 1
+	}
 	for _, file := range dir {
 		if strings.HasSuffix(file.Name(), ".csv") {
 			p := path.Join(workingDir, file.Name())
 			files = append(files, p)
 		}
 	}
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
-		return 1
-	}
-
 	err = GenerateTemplate(files)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
