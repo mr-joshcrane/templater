@@ -36,8 +36,7 @@ type Field struct {
 	Name string
 	Type string
 }
-
-type SQLTemplate struct {
+type SQLTemplate struct{
 	Tags string
 	Columns string
 	Source string
@@ -48,6 +47,7 @@ type Table struct {
 	Project   string
 	Fields    []Field
 	TypeMap   map[string]string
+	SQLTemplate SQLTemplate
 }
 type Metadata struct {
 	Tables map[string]Table
@@ -131,6 +131,7 @@ func GenerateTemplate(filePaths []string) error {
 			Fields:    []Field{},
 			TypeMap:   make(map[string]string),
 			Project:   projectName,
+			SQLTemplate: SQLTemplate{},
 		}
 		table := metadata.Tables[tableName]
 		empty := cue.Value{}
@@ -172,13 +173,13 @@ func GenerateTemplate(filePaths []string) error {
 			return table.Fields[i].Name < table.Fields[j].Name
 		})
 
-		sql_template := SQLTemplate{
+		table.SQLTemplate = SQLTemplate{
 			Tags: GenerateTagsSQL(table.Project, table.TableName),
 			Columns: GenerateColumnsSQL(table.Fields),
 			Source: GenerateSourceSQL(table.Project, table.TableName), 
 		}
 
-		err = tpl.Execute(&body, sql_template)
+		err = tpl.Execute(&body, table.SQLTemplate)
 		if err != nil {
 			return err
 		}
