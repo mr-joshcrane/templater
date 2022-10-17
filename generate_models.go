@@ -1,79 +1,49 @@
 package templater
 
 import (
-	"cuelang.org/go/cue"
-	"cuelang.org/go/encoding/yaml"
 	"fmt"
 	"sort"
 )
 
-type SourceTable struct {
-	Name        string `yaml:"name"`
-	Description string `yaml:"description"`
+type Test struct {
+	Test string `yaml:"test, omitempty"`
 }
-
-type Source struct {
-	Name   string        `yaml:"name"`
-	Schema string        `yaml:"schema"`
-	Tables []SourceTable `yaml:"tables"`
+type Column struct {
+	Name        string   `yaml:"name"`
+	Description *string   `yaml:"description, omitempty"`
+	Tests       []string `yaml:"tests, omitempty"`
 }
-
 type Sources struct {
-	Version int      `yaml:"version"`
+	Version int `yaml:"version"`
 	Sources []Source `yaml:"sources"`
 }
 
-type TransformColumn struct {
-	Name string `yaml:"name"`
+type Source struct {
+	Name   string   `yaml:"name"`
+	Schema string   `yaml:"schema"`
+	Tables []Column `yaml:"tables, omitempty"`
 }
 
-type TransformModel struct {
-	Name    string            `yaml:"name"`
-	Columns []TransformColumn `yaml:"columns"`
+type Models struct {
+	Version int     `yaml:"version"`
+	Models  []Model `yaml:"models"`
 }
 
-type TransformModels struct {
-	Version int              `yaml:"version"`
-	Models  []TransformModel `yaml:"models"`
-}
-
-type PublicColumn struct {
+type Model struct {
 	Name        string   `yaml:"name"`
-	Description string   `yaml:"description"`
-	Tests       []string `yaml:"tests"`
+	Description *string   `yaml:"description, omitempty"`
+	Tests       []Test   `yaml:"tests, omitempty"`
+	Columns     []Column `yaml:"columns"`
 }
 
-type PublicModel struct {
-	Name        string         `yaml:"name"`
-	Description string         `yaml:"description"`
-	Tests       RowCountTest   `yaml:"tests"`
-	Columns     []PublicColumn `yaml:"columns"`
-}
-
-type PublicModels struct {
-	Version int           `yaml:"version"`
-	Models  []PublicModel `yaml:"models"`
-}
-
-type CompareModel struct {
-	CompareModel string `yaml:"compare_model"`
-}
-
-type RowCountTest struct {
-	RowCountTest CompareModel `yaml:"dbt_utils.equal_rowcount"`
-}
-
-func generateTransform(c *cue.Context, metadata Metadata) (string, error) {
-	var z TransformModels
-	z.Version = 2
-	z.Models = []TransformModel{}
-
-	for _, v := range metadata.Tables {
-		m := TransformModel{}
-		m.Name = v.TableName
+func GenerateModel(tables []Table) Models {
+	var models []Model
+	for _, v := range tables {
+		m := Model{}
+		m.Name = v.Name
 		for k := range v.TypeMap {
 			k = formatKey(k)
-			col := TransformColumn{
+			col := Column{
 				Name: k,
 			}
 			m.Columns = append(m.Columns, col)
@@ -81,76 +51,47 @@ func generateTransform(c *cue.Context, metadata Metadata) (string, error) {
 				return m.Columns[i].Name < m.Columns[j].Name
 			})
 		}
-		z.Models = append(z.Models, m)
-		sort.Slice(z.Models, func(i, j int) bool {
-			return z.Models[i].Name < z.Models[j].Name
-		})
+		models = append(models, m)
 	}
-
-	cModel := c.Encode(z)
-	yaml, err := yaml.Encode(cModel)
-	if err != nil {
-		panic(err)
-	}
-	return string(yaml), err
-}
-
-func generatePublic(c *cue.Context, metadata Metadata) (string, error) {
-	var z PublicModels
-	z.Version = 2
-	z.Models = []PublicModel{}
-	for _, v := range metadata.Tables {
-		m := PublicModel{}
-		m.Name = v.TableName
-		m.Description = fmt.Sprintf("TODO: Description for %s", m.Name)
-		for k := range v.TypeMap {
-			k = formatKey(k)
-			col := PublicColumn{
-				Name:        k,
-				Description: fmt.Sprintf("TODO: Description for %s", k),
-				Tests:       []string{"not_null"},
-			}
-			m.Columns = append(m.Columns, col)
-		}
-		sort.Slice(m.Columns, func(i, j int) bool {
-			return m.Columns[i].Name < m.Columns[j].Name
-		})
-		z.Models = append(z.Models, m)
-	}
-	sort.Slice(z.Models, func(i, j int) bool {
-		return z.Models[i].Name < z.Models[j].Name
+	sort.Slice(models, func(i, j int) bool {
+		return models[i].Name < models[j].Name
 	})
-	cModel := c.Encode(z)
-	yaml, err := yaml.Encode(cModel)
-	if err != nil {
-		panic(err)
+	return Models{
+		Version: 2,
+		Models:  models,
 	}
-	return string(yaml), err
 }
 
-func generateSources(c *cue.Context, tables map[string]Table, projectName string) (string, error) {
-	var z Sources
-	z.Version = 2
-	s := Source{}
-
-	s.Name = projectName
-	s.Schema = "STAGING"
-	for k := range tables {
-		t := SourceTable{
-			Name:        k,
-			Description: fmt.Sprintf("TODO: %s DESCRIPTION", k),
+func (m *Models) AddDescriptions() *Models {
+	for model := range m.Models {
+		modelDescription := fmt.Sprintf("TODO: Description for MODEL, %s", m.Models[model].Name)
+		m.Models[model].Description = &modelDescription
+		for column := range m.Models[model].Columns {
+			columnDescription := fmt.Sprintf("TODO: Description for COLUMN, %s", m.Models[model].Columns[column].Name)
+			m.Models[model].Columns[column].Description = &columnDescription
 		}
-		s.Tables = append(s.Tables, t)
-		sort.Slice(s.Tables, func(i, j int) bool {
-			return s.Tables[i].Name < s.Tables[j].Name
+	}
+	return m
+}
+
+func generateSources(tables []Table, projectName string) Sources {
+	var source Source
+
+	source.Name = projectName
+	source.Schema = "STAGING"
+	for _, column := range tables {
+		columnDescription := fmt.Sprintf("TODO: Description for TABLE, %s", column.Name)
+		t := Column{
+			Name:        column.Name,
+			Description: &columnDescription,
+		}
+		source.Tables = append(source.Tables, t)
+		sort.Slice(source.Tables, func(i, j int) bool {
+			return source.Tables[i].Name < source.Tables[j].Name
 		})
 	}
-
-	z.Sources = []Source{s}
-	sModel := c.Encode(z)
-	yaml, err := yaml.Encode(sModel)
-	if err != nil {
-		panic(err)
+	return Sources{
+		Version: 2,
+		Sources: []Source{source},
 	}
-	return string(yaml), err
 }

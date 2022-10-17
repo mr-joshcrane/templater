@@ -25,41 +25,23 @@ Letter,Frequency,Percentage
 version: 2
 models:
   - name: BASEBALL
-    description: 'TODO: Description for BASEBALL'
-    tests:
-      dbt_utils.equal_rowcount:
-        compare_model: ""
+    description: 'TODO: Description for MODEL, BASEBALL'
     columns:
       - name: PAYROLL_MILLIONS
-        description: 'TODO: Description for PAYROLL_MILLIONS'
-        tests:
-          - not_null
+        description: 'TODO: Description for COLUMN, PAYROLL_MILLIONS'
       - name: TEAM
-        description: 'TODO: Description for TEAM'
-        tests:
-          - not_null
+        description: 'TODO: Description for COLUMN, TEAM'
       - name: WINS
-        description: 'TODO: Description for WINS'
-        tests:
-          - not_null
+        description: 'TODO: Description for COLUMN, WINS'
   - name: FREQUENCY
-    description: 'TODO: Description for FREQUENCY'
-    tests:
-      dbt_utils.equal_rowcount:
-        compare_model: ""
+    description: 'TODO: Description for MODEL, FREQUENCY'
     columns:
       - name: FREQUENCY
-        description: 'TODO: Description for FREQUENCY'
-        tests:
-          - not_null
+        description: 'TODO: Description for COLUMN, FREQUENCY'
       - name: LETTER
-        description: 'TODO: Description for LETTER'
-        tests:
-          - not_null
+        description: 'TODO: Description for COLUMN, LETTER'
       - name: PERCENTAGE
-        description: 'TODO: Description for PERCENTAGE'
-        tests:
-          - not_null
+        description: 'TODO: Description for COLUMN, PERCENTAGE'
 -- PROJECT/expected/transform_schema.yml --
 version: 2
 models:
@@ -80,9 +62,9 @@ sources:
     schema: STAGING
     tables:
       - name: BASEBALL
-        description: 'TODO: BASEBALL DESCRIPTION'
+        description: 'TODO: Description for TABLE, BASEBALL'
       - name: FREQUENCY
-        description: 'TODO: FREQUENCY DESCRIPTION'
+        description: 'TODO: Description for TABLE, FREQUENCY'
 -- PROJECT/expected/BASEBALL.sql --
 {{ config(tags=['PROJECT', 'BASEBALL']) }}
 SELECT

@@ -28,7 +28,7 @@ func TestTagStatementGeneratesCorrectly(t *testing.T) {
 	got := templater.GenerateTagsSQL(PROJECT, TABLE)
 	want := "{{ config(tags=['A_PROJECTNAME', 'A_TABLENAME']) }}"
 	if want != got {
-		t.Fatalf(cmp.Diff(want, got))
+		t.Fatalf(cmp.Diff(got, want))
 	}
 }
 
@@ -53,10 +53,9 @@ func TestColumnStatementGeneratesCorrectly(t *testing.T) {
   ,"Team"::STRING AS TEAM
   ,"Wins"::INTEGER AS WINS`
 	if want != got {
-		t.Fatalf(cmp.Diff(want, got))
+		t.Fatalf(cmp.Diff(got, want))
 	}
 }
-
 
 func TestSourceStatementGeneratesCorrectly(t *testing.T) {
 	t.Parallel()
@@ -65,7 +64,77 @@ func TestSourceStatementGeneratesCorrectly(t *testing.T) {
 	got := templater.GenerateSourceSQL(PROJECT, TABLE)
 	want := "  {{ source('A_PROJECTNAME', 'A_TABLENAME') }}"
 	if want != got {
-		t.Fatalf(cmp.Diff(want, got))
+		t.Fatalf(cmp.Diff(got, want))
+	}
+}
+
+func TestGeneratesCorrectly(t *testing.T) {
+	t.Parallel()
+	tables := []templater.Table{
+		{
+			Name: "BASEBALL",
+			Fields: []templater.Field{
+				{
+					Name: "PAYROLL_MILLIONS",
+				},
+				{
+					Name: "TEAM",
+				},
+				{
+					Name: "WINS",
+				},
+			},
+		},
+		{
+			Name: "FREQUENCY",
+			Fields: []templater.Field{
+				{
+					Name: "FREQUENCY",
+				},
+				{
+					Name: "LETTER",
+				},
+				{
+					Name: "PERCENTAGE",
+				},
+			},
+		},
+	}
+
+	want := []templater.Model{
+		{
+			Name: "BASEBALL",
+			Columns: []templater.Column{
+				{
+					Name: "PAYROLL_MILLIONS",
+				},
+				{
+					Name: "TEAM",
+				},
+				{
+					Name: "WINS",
+				},
+			},
+		},
+		{
+
+			Columns: []templater.Column{
+				{
+					Name: "PAYROLL_MILLIONS",
+				},
+				{
+					Name: "TEAM",
+				},
+				{
+					Name: "WINS",
+				},
+			},
+		},
+	}
+
+	got := templater.GenerateModel(tables)
+	if cmp.Equal(got, want) {
+		t.Fatalf(cmp.Diff(got, want))
 	}
 }
 

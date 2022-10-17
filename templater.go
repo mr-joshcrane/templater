@@ -15,6 +15,7 @@ import (
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/encoding/json"
+	"cuelang.org/go/encoding/yaml"
 )
 
 var (
@@ -36,21 +37,21 @@ type Field struct {
 	Name string
 	Type string
 }
-type SQLTemplate struct{
-	Tags string
+type SQLTemplate struct {
+	Tags    string
 	Columns string
-	Source string
+	Source  string
 }
 
 type Table struct {
-	TableName string
-	Project   string
-	Fields    []Field
-	TypeMap   map[string]string
+	Name        string
+	Project     string
+	Fields      []Field
+	TypeMap     map[string]string
 	SQLTemplate SQLTemplate
 }
 type Metadata struct {
-	Tables map[string]Table
+	Tables []Table
 }
 
 func GenerateTagsSQL(project, table string) string {
@@ -73,7 +74,7 @@ func GenerateColumnsSQL(fields []Field) string {
 	// strip the first comma out
 	column_data = strings.Replace(column_data, ",", "", 1)
 	// strip the last new line out
-	column_data = column_data[0:len(column_data)-1]
+	column_data = column_data[0 : len(column_data)-1]
 
 	return column_data
 }
@@ -88,9 +89,8 @@ func GenerateTemplate(filePaths []string) error {
 		}
 	}
 
-	tables := make(map[string]Table)
 	metadata := Metadata{
-		Tables: tables,
+		Tables: []Table{},
 	}
 
 	tpl, err := template.New("template.gohtml").ParseFS(fs, "template.gohtml")
@@ -125,15 +125,16 @@ func GenerateTemplate(filePaths []string) error {
 			fmt.Println(err)
 			return errors.New("unable to iterate through cue fields")
 		}
-
-		metadata.Tables[tableName] = Table{
-			TableName: tableName,
-			Fields:    []Field{},
-			TypeMap:   make(map[string]string),
-			Project:   projectName,
+		table := Table{
+			Name:        tableName,
+			Fields:      []Field{},
+			TypeMap:     make(map[string]string),
+			Project:     projectName,
 			SQLTemplate: SQLTemplate{},
 		}
-		table := metadata.Tables[tableName]
+
+		metadata.Tables = append(metadata.Tables, table)
+
 		empty := cue.Value{}
 		for iter.Next() {
 			unified := iter.Value().Unify(empty)
@@ -174,44 +175,48 @@ func GenerateTemplate(filePaths []string) error {
 		})
 
 		table.SQLTemplate = SQLTemplate{
-			Tags: GenerateTagsSQL(table.Project, table.TableName),
+			Tags:    GenerateTagsSQL(table.Project, table.Name),
 			Columns: GenerateColumnsSQL(table.Fields),
-			Source: GenerateSourceSQL(table.Project, table.TableName), 
+			Source:  GenerateSourceSQL(table.Project, table.Name),
 		}
 
 		err = tpl.Execute(&body, table.SQLTemplate)
 		if err != nil {
 			return err
 		}
-		filename := fmt.Sprintf("output/%s.sql", table.TableName)
+		filename := fmt.Sprintf("output/%s.sql", table.Name)
 		err = os.WriteFile(filename, body.Bytes(), 0644)
 		if err != nil {
 			return err
 		}
 	}
 
-	transformModel, err := generateTransform(c, metadata)
+	model := GenerateModel(metadata.Tables)
+	transformEncoded, err := yaml.Encode(c.Encode(model))
 	if err != nil {
 		return err
 	}
-
-	err = os.WriteFile("output/transform_schema.yml", []byte(transformModel), 0644)
+	err = os.WriteFile("output/transform_schema.yml", transformEncoded, 0644)
 	if err != nil {
 		return err
 	}
-	publicModel, err := generatePublic(c, metadata)
+	publicEncoded, err := yaml.Encode(c.Encode(model.AddDescriptions()))
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile("output/public_schema.yml", []byte(publicModel), 0644)
+	err = os.WriteFile("output/public_schema.yml", publicEncoded, 0644)
 	if err != nil {
 		return err
 	}
-	sourceModel, err := generateSources(c, metadata.Tables, projectName)
+	sourceModel := generateSources(metadata.Tables, projectName)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	err = os.WriteFile("output/source_schema.yml", []byte(sourceModel), 0644)
+	sourceEncoded, err := yaml.Encode(c.Encode(sourceModel))
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile("output/source_schema.yml", sourceEncoded, 0644)
 	if err != nil {
 		return err
 	}
