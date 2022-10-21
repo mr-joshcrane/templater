@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"text/template"
@@ -34,7 +35,8 @@ var SnowflakeTypes = map[string]string{
 }
 
 type Field struct {
-	Name string
+	Node string
+	Path string
 	Type string
 }
 type SQLTemplate struct {
@@ -51,7 +53,7 @@ type Table struct {
 	SQLTemplate SQLTemplate
 }
 type Metadata struct {
-	Tables []Table
+	Tables []*Table
 }
 
 func GenerateTagsSQL(project, table string) string {
@@ -65,10 +67,10 @@ func GenerateSourceSQL(project, table string) string {
 func GenerateColumnsSQL(fields []Field) string {
 	column_data := ""
 	sort.Slice(fields, func(i, j int) bool {
-		return fields[i].Name < fields[j].Name
+		return fields[i].Node < fields[j].Node
 	})
 	for _, field := range fields {
-		column_data += fmt.Sprintf(`  ,"%s"::%s AS %s`, field.Name, field.Type, formatKey(field.Name))
+		column_data += fmt.Sprintf(`  ,"%s"::%s AS %s`, field.Path, field.Type, formatKey(field.Node))
 		column_data += "\n"
 	}
 	// strip the first comma out
@@ -90,7 +92,7 @@ func GenerateTemplate(filePaths []string) error {
 	}
 
 	metadata := Metadata{
-		Tables: []Table{},
+		Tables: []*Table{},
 	}
 
 	tpl, err := template.New("template.gohtml").ParseFS(fs, "template.gohtml")
@@ -120,11 +122,7 @@ func GenerateTemplate(filePaths []string) error {
 		}
 
 		v := c.BuildExpr(expr)
-		iter, err := v.List()
-		if err != nil {
-			fmt.Println(err)
-			return errors.New("unable to iterate through cue fields")
-		}
+
 		table := Table{
 			Name:        tableName,
 			Fields:      []Field{},
@@ -133,45 +131,51 @@ func GenerateTemplate(filePaths []string) error {
 			SQLTemplate: SQLTemplate{},
 		}
 
-		metadata.Tables = append(metadata.Tables, table)
+		metadata.Tables = append(metadata.Tables, &table)
 
-		empty := cue.Value{}
-		for iter.Next() {
-			unified := iter.Value().Unify(empty)
-			if unified.Err() != nil {
-				continue
+		item, err := v.List()
+		if err != nil {
+			panic(err)
+		}
+		for item.Next() {
+			v1 := item.Value().LookupPath(cue.ParsePath("V"))
+			if v1.Exists() {
+				byt, err := v1.Bytes()
+				if err != nil {
+					panic(err)
+				}
+				e, err := json.Extract("", byt)
+				if err != nil {
+					panic(err)
+				}
+				v2 := c.BuildExpr(e)
+				v2.Walk(stopCondition, func(c cue.Value) { unpack(&table, c, func(s string) string { return "V:" + s }) })
+			}
+			
+			item.Value().Walk(func(c cue.Value) bool { return true }, func(c cue.Value) { unpack(&table, c) })
+			if len(table.TypeMap) == 0 {
+				return errors.New("empty JSON")
 			}
 
-			iter2, _ := unified.Fields()
-			for iter2.Next() {
-				k := iter2.Selector().String()
-				t := SnowflakeTypes[iter2.Value().IncompleteKind().String()]
-				if _, ok := table.TypeMap[k]; !ok {
-					table.TypeMap[k] = t
-					continue
-				}
-				prevType := table.TypeMap[k]
-				if prevType == "VARCHAR" || prevType == "" {
-					table.TypeMap[k] = t
-				}
-			}
 		}
-
-		if len(table.TypeMap) == 0 {
-			return errors.New("empty JSON")
-		}
-
+		// Delete
+		delete(table.TypeMap, "V")
 		for k, v := range table.TypeMap {
 			k = strings.ReplaceAll(k, `"`, ``)
+			node := k
+			if strings.Contains(k, ":") {
+				node = strings.Join(strings.Split(k, ":")[1:], ":")
+			}
 			table.Fields = append(table.Fields, Field{
-				Name: k,
+				Path: k,
 				Type: v,
+				Node: formatKey(node),
 			})
 		}
 
 		var body bytes.Buffer
 		sort.Slice(table.Fields, func(i, j int) bool {
-			return table.Fields[i].Name < table.Fields[j].Name
+			return table.Fields[i].Node < table.Fields[j].Node
 		})
 
 		table.SQLTemplate = SQLTemplate{
@@ -179,7 +183,6 @@ func GenerateTemplate(filePaths []string) error {
 			Columns: GenerateColumnsSQL(table.Fields),
 			Source:  GenerateSourceSQL(table.Project, table.Name),
 		}
-
 		err = tpl.Execute(&body, table.SQLTemplate)
 		if err != nil {
 			return err
@@ -189,36 +192,36 @@ func GenerateTemplate(filePaths []string) error {
 		if err != nil {
 			return err
 		}
-	}
 
-	model := GenerateModel(metadata.Tables)
-	transformEncoded, err := yaml.Encode(c.Encode(model))
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile("output/transform_schema.yml", transformEncoded, 0644)
-	if err != nil {
-		return err
-	}
-	publicEncoded, err := yaml.Encode(c.Encode(model.AddDescriptions()))
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile("output/public_schema.yml", publicEncoded, 0644)
-	if err != nil {
-		return err
-	}
-	sourceModel := generateSources(metadata.Tables, projectName)
-	if err != nil {
-		return err
-	}
-	sourceEncoded, err := yaml.Encode(c.Encode(sourceModel))
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile("output/source_schema.yml", sourceEncoded, 0644)
-	if err != nil {
-		return err
+		model := GenerateModel(metadata.Tables)
+		transformEncoded, err := yaml.Encode(c.Encode(model))
+		if err != nil {
+			return err
+		}
+		err = os.WriteFile("output/transform_schema.yml", transformEncoded, 0644)
+		if err != nil {
+			return err
+		}
+		publicEncoded, err := yaml.Encode(c.Encode(model.AddDescriptions()))
+		if err != nil {
+			return err
+		}
+		err = os.WriteFile("output/public_schema.yml", publicEncoded, 0644)
+		if err != nil {
+			return err
+		}
+		sourceModel := generateSources(metadata.Tables, projectName)
+		if err != nil {
+			return err
+		}
+		sourceEncoded, err := yaml.Encode(c.Encode(sourceModel))
+		if err != nil {
+			return err
+		}
+		err = os.WriteFile("output/source_schema.yml", sourceEncoded, 0644)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -231,7 +234,8 @@ func strip(s string) string {
 			('A' <= b && b <= 'Z') ||
 			('0' <= b && b <= '9') ||
 			b == '_' ||
-			b == ' ' {
+			b == ' ' ||
+			b == '.' {
 			result.WriteByte(b)
 		}
 	}
@@ -243,6 +247,7 @@ func formatKey(s string) string {
 	s = strings.ReplaceAll(s, `(`, " ")
 	s = strip(s)
 	s = strings.TrimLeft(s, ` `)
+	s = strings.ReplaceAll(s, `.`, `__`)
 	s = strings.ReplaceAll(s, ` `, `_`)
 	return s
 }
@@ -275,4 +280,47 @@ func Main() int {
 		return 1
 	}
 	return 0
+}
+
+func stopCondition(c cue.Value) bool {
+	exp, err := regexp.Compile(`^[[0-9]*].`)
+	if err != nil {
+		panic(err)
+	}
+	p := c.Path().String()
+	p = exp.ReplaceAllString(p, "")
+	if strings.Contains(p, `[`) {
+		return false
+	}
+	return true
+}
+
+type NameOption func(string) string
+
+func unpack(t *Table, c cue.Value, opts ...NameOption) {
+	exp, err := regexp.Compile(`^[[0-9]*].`)
+	if err != nil {
+		panic(err)
+	}
+	p := c.Path().String()
+	p = exp.ReplaceAllString(p, "")
+	for _, opt := range opts {
+		p = opt(p)
+	}
+	sfType := SnowflakeTypes[c.IncompleteKind().String()]
+	if strings.Contains(p, `[`) {
+		return
+	}
+	if sfType == "OBJECT" {
+		return
+	}
+
+	if _, ok := t.TypeMap[p]; !ok {
+		t.TypeMap[p] = sfType
+		return
+	}
+	prevType := t.TypeMap[p]
+	if prevType == "VARCHAR" || prevType == "" {
+		t.TypeMap[p] = sfType
+	}
 }

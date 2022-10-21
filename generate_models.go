@@ -10,11 +10,11 @@ type Test struct {
 }
 type Column struct {
 	Name        string   `yaml:"name"`
-	Description *string   `yaml:"description, omitempty"`
+	Description *string  `yaml:"description, omitempty"`
 	Tests       []string `yaml:"tests, omitempty"`
 }
 type Sources struct {
-	Version int `yaml:"version"`
+	Version int      `yaml:"version"`
 	Sources []Source `yaml:"sources"`
 }
 
@@ -31,20 +31,20 @@ type Models struct {
 
 type Model struct {
 	Name        string   `yaml:"name"`
-	Description *string   `yaml:"description, omitempty"`
+	Description *string  `yaml:"description, omitempty"`
 	Tests       []Test   `yaml:"tests, omitempty"`
 	Columns     []Column `yaml:"columns"`
 }
 
-func GenerateModel(tables []Table) Models {
+func GenerateModel(tables []*Table) Models {
 	var models []Model
-	for _, v := range tables {
+	for _, table := range tables {
 		m := Model{}
-		m.Name = v.Name
-		for k := range v.TypeMap {
-			k = formatKey(k)
+		m.Name = table.Name
+		for _, field := range table.Fields {
+			node := formatKey(field.Node)
 			col := Column{
-				Name: k,
+				Name: node,
 			}
 			m.Columns = append(m.Columns, col)
 			sort.Slice(m.Columns, func(i, j int) bool {
@@ -74,7 +74,7 @@ func (m *Models) AddDescriptions() *Models {
 	return m
 }
 
-func generateSources(tables []Table, projectName string) Sources {
+func generateSources(tables []*Table, projectName string) Sources {
 	var source Source
 
 	source.Name = projectName

@@ -35,16 +35,19 @@ func TestTagStatementGeneratesCorrectly(t *testing.T) {
 func TestColumnStatementGeneratesCorrectly(t *testing.T) {
 	t.Parallel()
 	fields := []templater.Field{
-		{
-			Name: "Team",
+		{	
+			Path: "Team",
+			Node: "Team",
 			Type: "STRING",
 		},
-		{
-			Name: "Payroll(millions)",
+		{	
+			Path: "Payroll(millions)",
+			Node: "Payroll(millions)",
 			Type: "FLOAT",
 		},
-		{
-			Name: "Wins",
+		{			
+			Path: "Wins",
+			Node: "Wins",
 			Type: "INTEGER",
 		},
 	}
@@ -70,18 +73,18 @@ func TestSourceStatementGeneratesCorrectly(t *testing.T) {
 
 func TestGeneratesCorrectly(t *testing.T) {
 	t.Parallel()
-	tables := []templater.Table{
+	tables := []*templater.Table{
 		{
 			Name: "BASEBALL",
 			Fields: []templater.Field{
 				{
-					Name: "PAYROLL_MILLIONS",
+					Node: "PAYROLL_MILLIONS",
 				},
 				{
-					Name: "TEAM",
+					Node: "TEAM",
 				},
 				{
-					Name: "WINS",
+					Node: "WINS",
 				},
 			},
 		},
@@ -89,13 +92,13 @@ func TestGeneratesCorrectly(t *testing.T) {
 			Name: "FREQUENCY",
 			Fields: []templater.Field{
 				{
-					Name: "FREQUENCY",
+					Node: "FREQUENCY",
 				},
 				{
-					Name: "LETTER",
+					Node: "LETTER",
 				},
 				{
-					Name: "PERCENTAGE",
+					Node: "PERCENTAGE",
 				},
 			},
 		},
