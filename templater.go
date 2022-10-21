@@ -69,8 +69,11 @@ func GenerateColumnsSQL(fields []Field) string {
 	sort.Slice(fields, func(i, j int) bool {
 		return fields[i].Node < fields[j].Node
 	})
+
 	for _, field := range fields {
-		column_data += fmt.Sprintf(`  ,"%s"::%s AS %s`, field.Path, field.Type, formatKey(field.Node))
+		quotedPath := strings.ReplaceAll(field.Path, `:`, `":"`)
+		quotedPath = strings.ReplaceAll(quotedPath, `.`, `"."`)
+		column_data += fmt.Sprintf(`  ,"%s"::%s AS %s`, quotedPath, field.Type, formatKey(field.Node))
 		column_data += "\n"
 	}
 	// strip the first comma out

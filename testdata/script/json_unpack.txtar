@@ -1,13 +1,13 @@
 cd PROJECT
 exec main
-cmp output/JSON.sql expected/JSON.sql
+cmp expected/JSON.sql output/JSON.sql 
 
 -- PROJECT/expected/JSON.sql --
 {{ config(tags=['PROJECT', 'JSON']) }}
 SELECT
-  "V:attributes.active"::BOOLEAN AS ATTRIBUTES__ACTIVE
-  ,"V:attributes.available_in"::STRING AS ATTRIBUTES__AVAILABLE_IN
-  ,"V:attributes.component"::ARRAY AS ATTRIBUTES__COMPONENT
+  "V":"attributes"."active"::BOOLEAN AS ATTRIBUTES__ACTIVE
+  ,"V":"attributes"."available_in"::STRING AS ATTRIBUTES__AVAILABLE_IN
+  ,"V":"attributes"."component"::ARRAY AS ATTRIBUTES__COMPONENT
   ,"_ODS_AIRFLOW_DAG_RUN_ID"::STRING AS _ODS_AIRFLOW_DAG_RUN_ID
   ,"_ODS_EXTRACT_ID"::STRING AS _ODS_EXTRACT_ID
   ,"_ODS_IS_DELETED"::STRING AS _ODS_IS_DELETED
