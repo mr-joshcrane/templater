@@ -20,7 +20,6 @@ Letter,Frequency,Percentage
 "B",4762938,1.6
 "C",8982417,3.0
 
-
 -- PROJECT/expected/public_schema.yml --
 version: 2
 models:
