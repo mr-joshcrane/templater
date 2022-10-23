@@ -6,10 +6,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strings"
 
-	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/encoding/json"
 )
@@ -52,9 +50,7 @@ func GenerateTemplate(filePaths []string) error {
 				return err
 			}
 		}
-		tableName := filepath.Base(path)
-		tableName = strings.ToUpper(tableName)
-		tableName = strings.ReplaceAll(tableName, ".CSV", "")
+		tableName := cleanTableName(path)
 
 		expr, err := json.Extract("", contents)
 		if err != nil {
@@ -64,41 +60,12 @@ func GenerateTemplate(filePaths []string) error {
 
 		v := c.BuildExpr(expr)
 
-		table := Table{
-			Name:        tableName,
-			Fields:      make(map[string]Field),
-			Project:     projectName,
-			SQLTemplate: SQLTemplate{},
+		table, err := MakeTable(v, tableName, projectName)
+		if err != nil {
+			return err
 		}
 
 		tables = append(tables, &table)
-
-		item, err := v.List()
-		if err != nil {
-			panic(err)
-		}
-		for item.Next() {
-			v1 := item.Value().LookupPath(cue.ParsePath("V"))
-			if v1.Exists() {
-				byt, err := v1.Bytes()
-				if err != nil {
-					panic(err)
-				}
-				e, err := json.Extract("", byt)
-				if err != nil {
-					panic(err)
-				}
-				v2 := c.BuildExpr(e)
-				v2.Walk(stopCondition, func(c cue.Value) { unpack(&table, c, prefix) })
-			}
-
-			item.Value().Walk(func(c cue.Value) bool { return true }, func(c cue.Value) { unpack(&table, c, func(s string) string { return strings.ReplaceAll(s, `"`, ``) }) })
-			if len(table.Fields) == 0 {
-				return errors.New("empty JSON")
-			}
-
-		}
-		delete(table.Fields, "V")
 
 		err = GenerateSQLModel(table)
 		if err != nil {
@@ -121,32 +88,6 @@ func GenerateTemplate(filePaths []string) error {
 		}
 	}
 	return nil
-}
-
-func strip(s string) string {
-	var result strings.Builder
-	for i := 0; i < len(s); i++ {
-		b := s[i]
-		if ('a' <= b && b <= 'z') ||
-			('A' <= b && b <= 'Z') ||
-			('0' <= b && b <= '9') ||
-			b == '_' ||
-			b == ' ' ||
-			b == '.' {
-			result.WriteByte(b)
-		}
-	}
-	return result.String()
-}
-
-func formatKey(s string) string {
-	s = strings.ToUpper(s)
-	s = strings.ReplaceAll(s, `(`, " ")
-	s = strip(s)
-	s = strings.TrimLeft(s, ` `)
-	s = strings.ReplaceAll(s, `.`, `__`)
-	s = strings.ReplaceAll(s, ` `, `_`)
-	return s
 }
 
 func Main() int {
@@ -186,64 +127,4 @@ func Main() int {
 		return 1
 	}
 	return 0
-}
-
-func stopCondition(c cue.Value) bool {
-	exp, err := regexp.Compile(`^[[0-9]*].`)
-	if err != nil {
-		panic(err)
-	}
-	p := c.Path().String()
-	p = exp.ReplaceAllString(p, "")
-	if strings.Contains(p, `[`) {
-		return false
-	}
-	return true
-}
-
-type NameOption func(string) string
-
-func prefix(s string) string {
-	return "V:" + s
-}
-
-func unpack(t *Table, c cue.Value, opts ...NameOption) {
-	exp, err := regexp.Compile(`^[[0-9]*].`)
-	if err != nil {
-		panic(err)
-	}
-	path := c.Path().String()
-	path = exp.ReplaceAllString(path, "")
-	node := path
-	node = formatKey(node)
-
-	for _, opt := range opts {
-		path = opt(path)
-	}
-	path = strings.ReplaceAll(path, `"`, "")
-	path = strings.ReplaceAll(path, `:`, `":"`)
-	path = strings.ReplaceAll(path, `.`, `"."`)
-
-	snowflakeType := SnowflakeTypes[c.IncompleteKind().String()]
-	if strings.Contains(path, `[`) {
-		return
-	}
-	if snowflakeType == "OBJECT" {
-		return
-	}
-
-	field := Field{
-		Node:        node,
-		Path:        path,
-		InferedType: snowflakeType,
-	}
-
-	if _, ok := t.Fields[path]; !ok {
-		t.Fields[path] = field
-		return
-	}
-	existingField := t.Fields[path]
-	if existingField.InferedType == "VARCHAR" || existingField.InferedType == "" {
-		existingField.InferedType = snowflakeType
-	}
 }
