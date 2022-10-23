@@ -1,28 +1,17 @@
 package templater
 
 import (
-	"bytes"
-	"embed"
 	"errors"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
-	"text/template"
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/encoding/json"
-	"cuelang.org/go/encoding/yaml"
-	"golang.org/x/exp/maps"
-)
-
-var (
-	//go:embed template.gohtml
-	fs embed.FS
 )
 
 var SnowflakeTypes = map[string]string{
@@ -40,11 +29,6 @@ type Field struct {
 	Path        string
 	InferedType string
 }
-type SQLTemplate struct {
-	Tags    string
-	Columns string
-	Source  string
-}
 
 type Table struct {
 	Name        string
@@ -53,60 +37,19 @@ type Table struct {
 	SQLTemplate SQLTemplate
 }
 type Metadata struct {
-	Tables []*Table
-}
-
-func GenerateTagsSQL(project, table string) string {
-	return fmt.Sprintf("{{ config(tags=['%s', '%s']) }}", strings.ToUpper(project), strings.ToUpper(table))
-}
-
-func GenerateSourceSQL(project, table string) string {
-	return fmt.Sprintf("  {{ source('%s', '%s') }}", strings.ToUpper(project), strings.ToUpper(table))
-}
-
-func GenerateColumnsSQL(f map[string]Field) string {
-	fields := maps.Values(f)
-	column_data := ""
-	sort.Slice(fields, func(i, j int) bool {
-		if fields[i].Node[0] == '_' && fields[j].Node[0] != '_' {
-			return false
-		}
-		return fields[i].Node < fields[j].Node
-	})
-	for _, field := range fields {
-
-		column_data += fmt.Sprintf(`  ,"%s"::%s AS %s`, field.Path, field.InferedType, formatKey(field.Node))
-		column_data += "\n"
-	}
-	// strip the first comma out
-	column_data = strings.Replace(column_data, ",", "", 1)
-	// strip the last new line out
-	column_data = column_data[0 : len(column_data)-1]
-
-	return column_data
+	ProjectName string
+	Tables      []*Table
 }
 
 func GenerateTemplate(filePaths []string) error {
 	c := cuecontext.New()
-	_, err := os.Stat("output")
-	if err != nil {
-		err := os.Mkdir("output", 0777)
-		if err != nil {
-			return err
-		}
-	}
-
-	metadata := Metadata{
-		Tables: []*Table{},
-	}
-
-	tpl, err := template.New("template.gohtml").ParseFS(fs, "template.gohtml")
-	if err != nil {
-		return err
-	}
-
 	projectName := filepath.Dir(filePaths[0])
 	projectName = filepath.Base(projectName)
+
+	metadata := Metadata{
+		ProjectName: projectName,
+		Tables:      []*Table{},
+	}
 
 	for _, path := range filePaths {
 		contents, err := os.ReadFile(path)
@@ -164,49 +107,22 @@ func GenerateTemplate(filePaths []string) error {
 		}
 		delete(table.Fields, "V")
 
-		var body bytes.Buffer
-
-		table.SQLTemplate = SQLTemplate{
-			Tags:    GenerateTagsSQL(table.Project, table.Name),
-			Columns: GenerateColumnsSQL(table.Fields),
-			Source:  GenerateSourceSQL(table.Project, table.Name),
-		}
-		err = tpl.Execute(&body, table.SQLTemplate)
-		if err != nil {
-			return err
-		}
-		filename := fmt.Sprintf("output/%s.sql", table.Name)
-		err = os.WriteFile(filename, body.Bytes(), 0644)
+		err = GenerateSQLModel(table)
 		if err != nil {
 			return err
 		}
 
 		model := GenerateModel(metadata.Tables)
-		transformEncoded, err := yaml.Encode(c.Encode(model))
+
+		err = WriteModelProperties("transform_schema.yml", c, model)
 		if err != nil {
 			return err
 		}
-		err = os.WriteFile("output/transform_schema.yml", transformEncoded, 0644)
+		err = WriteModelProperties("public_schema.yml", c, *model.AddDescriptions())
 		if err != nil {
 			return err
 		}
-		publicEncoded, err := yaml.Encode(c.Encode(model.AddDescriptions()))
-		if err != nil {
-			return err
-		}
-		err = os.WriteFile("output/public_schema.yml", publicEncoded, 0644)
-		if err != nil {
-			return err
-		}
-		sourceModel := generateSources(metadata.Tables, projectName)
-		if err != nil {
-			return err
-		}
-		sourceEncoded, err := yaml.Encode(c.Encode(sourceModel))
-		if err != nil {
-			return err
-		}
-		err = os.WriteFile("output/source_schema.yml", sourceEncoded, 0644)
+		err = WriteSourceProperties("source_properties.yml", c, metadata)
 		if err != nil {
 			return err
 		}
@@ -250,12 +166,21 @@ func Main() int {
 	if err != nil {
 		fmt.Println(err)
 	}
+
 	var files []string
 	dir, err := os.ReadDir(workingDir)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		return 1
 	}
+	_, err = os.Stat("output")
+	if err != nil {
+		err := os.Mkdir("output", 0777)
+		if err != nil {
+			return 1
+		}
+	}
+
 	for _, file := range dir {
 		if strings.HasSuffix(file.Name(), ".csv") {
 			p := path.Join(workingDir, file.Name())
