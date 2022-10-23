@@ -36,20 +36,13 @@ type Table struct {
 	Fields      map[string]Field
 	SQLTemplate SQLTemplate
 }
-type Metadata struct {
-	ProjectName string
-	Tables      []*Table
-}
 
 func GenerateTemplate(filePaths []string) error {
 	c := cuecontext.New()
 	projectName := filepath.Dir(filePaths[0])
 	projectName = filepath.Base(projectName)
 
-	metadata := Metadata{
-		ProjectName: projectName,
-		Tables:      []*Table{},
-	}
+	tables := []*Table{}
 
 	for _, path := range filePaths {
 		contents, err := os.ReadFile(path)
@@ -78,7 +71,7 @@ func GenerateTemplate(filePaths []string) error {
 			SQLTemplate: SQLTemplate{},
 		}
 
-		metadata.Tables = append(metadata.Tables, &table)
+		tables = append(tables, &table)
 
 		item, err := v.List()
 		if err != nil {
@@ -112,7 +105,7 @@ func GenerateTemplate(filePaths []string) error {
 			return err
 		}
 
-		model := GenerateModel(metadata.Tables)
+		model := GenerateModel(tables)
 
 		err = WriteModelProperties("transform_schema.yml", c, model)
 		if err != nil {
@@ -122,7 +115,7 @@ func GenerateTemplate(filePaths []string) error {
 		if err != nil {
 			return err
 		}
-		err = WriteSourceProperties("source_properties.yml", c, metadata)
+		err = WriteSourceProperties("source_properties.yml", c, tables, projectName)
 		if err != nil {
 			return err
 		}

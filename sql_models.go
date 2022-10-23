@@ -92,8 +92,9 @@ func WriteModelProperties(path string, c *cue.Context, model Models) error {
 	}
 	return nil
 }
-func WriteSourceProperties(path string, c *cue.Context, metadata Metadata) error {
-	sourceModel := generateSources(metadata.Tables, metadata.ProjectName)
+
+func WriteSourceProperties(path string, c *cue.Context, tables []*Table, projectName string) error {
+	sourceModel := generateSources(tables, projectName)
 	sourceEncoded, err := yaml.Encode(c.Encode(sourceModel))
 	if err != nil {
 		return err
