@@ -74,10 +74,8 @@ func GenerateColumnsSQL(f map[string]Field) string {
 		return fields[i].Node < fields[j].Node
 	})
 	for _, field := range fields {
-		quotedPath := strings.ReplaceAll(field.Path, `"`, "")
-		quotedPath = strings.ReplaceAll(quotedPath, `:`, `":"`)
-		quotedPath = strings.ReplaceAll(quotedPath, `.`, `"."`)
-		column_data += fmt.Sprintf(`  ,"%s"::%s AS %s`, quotedPath, field.InferedType, formatKey(field.Node))
+
+		column_data += fmt.Sprintf(`  ,"%s"::%s AS %s`, field.Path, field.InferedType, formatKey(field.Node))
 		column_data += "\n"
 	}
 	// strip the first comma out
@@ -310,10 +308,9 @@ func unpack(t *Table, c cue.Value, opts ...NameOption) {
 	if snowflakeType == "OBJECT" {
 		return
 	}
-	fmt.Println(node == path)
-	fmt.Println(node)
-	fmt.Println(path)
-	fmt.Println()
+	path = strings.ReplaceAll(path, `"`, "")
+	path = strings.ReplaceAll(path, `:`, `":"`)
+	path = strings.ReplaceAll(path, `.`, `"."`)
 	field := Field{
 		Node:        node,
 		Path:        path,
