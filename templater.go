@@ -153,10 +153,10 @@ func GenerateTemplate(filePaths []string) error {
 					panic(err)
 				}
 				v2 := c.BuildExpr(e)
-				v2.Walk(stopCondition, func(c cue.Value) { unpack(&table, c, prefix ) })
+				v2.Walk(stopCondition, func(c cue.Value) { unpack(&table, c, prefix) })
 			}
 
-			item.Value().Walk(func(c cue.Value) bool { return true }, func(c cue.Value) { unpack(&table, c, func(s string) string { return strings.ReplaceAll(s, `"`, ``)} ) })
+			item.Value().Walk(func(c cue.Value) bool { return true }, func(c cue.Value) { unpack(&table, c, func(s string) string { return strings.ReplaceAll(s, `"`, ``) }) })
 			if len(table.Fields) == 0 {
 				return errors.New("empty JSON")
 			}
@@ -298,9 +298,14 @@ func unpack(t *Table, c cue.Value, opts ...NameOption) {
 	path = exp.ReplaceAllString(path, "")
 	node := path
 	node = formatKey(node)
+
 	for _, opt := range opts {
 		path = opt(path)
 	}
+	path = strings.ReplaceAll(path, `"`, "")
+	path = strings.ReplaceAll(path, `:`, `":"`)
+	path = strings.ReplaceAll(path, `.`, `"."`)
+
 	snowflakeType := SnowflakeTypes[c.IncompleteKind().String()]
 	if strings.Contains(path, `[`) {
 		return
@@ -308,9 +313,7 @@ func unpack(t *Table, c cue.Value, opts ...NameOption) {
 	if snowflakeType == "OBJECT" {
 		return
 	}
-	path = strings.ReplaceAll(path, `"`, "")
-	path = strings.ReplaceAll(path, `:`, `":"`)
-	path = strings.ReplaceAll(path, `.`, `"."`)
+
 	field := Field{
 		Node:        node,
 		Path:        path,
