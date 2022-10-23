@@ -34,21 +34,21 @@ func TestTagStatementGeneratesCorrectly(t *testing.T) {
 
 func TestColumnStatementGeneratesCorrectly(t *testing.T) {
 	t.Parallel()
-	fields := []templater.Field{
-		{	
-			Path: "Team",
-			Node: "Team",
-			Type: "STRING",
+	fields := map[string]templater.Field{
+		"Team": {
+			Path:        "Team",
+			Node:        "Team",
+			InferedType: "STRING",
 		},
-		{	
-			Path: "Payroll(millions)",
-			Node: "Payroll(millions)",
-			Type: "FLOAT",
+		"Payroll(millions)": {
+			Path:        "Payroll(millions)",
+			Node:        "Payroll(millions)",
+			InferedType: "FLOAT",
 		},
-		{			
-			Path: "Wins",
-			Node: "Wins",
-			Type: "INTEGER",
+		"Wins": {
+			Path:        "Wins",
+			Node:        "Wins",
+			InferedType: "INTEGER",
 		},
 	}
 	got := templater.GenerateColumnsSQL(fields)
@@ -76,28 +76,28 @@ func TestGeneratesCorrectly(t *testing.T) {
 	tables := []*templater.Table{
 		{
 			Name: "BASEBALL",
-			Fields: []templater.Field{
-				{
+			Fields: map[string]templater.Field{
+				"PAYROLL_MILLIONS": {
 					Node: "PAYROLL_MILLIONS",
 				},
-				{
+				"TEAM": {
 					Node: "TEAM",
 				},
-				{
+				"WINS": {
 					Node: "WINS",
 				},
 			},
 		},
 		{
 			Name: "FREQUENCY",
-			Fields: []templater.Field{
-				{
+			Fields: map[string]templater.Field{
+				"FREQUENCY": {
 					Node: "FREQUENCY",
 				},
-				{
+				"LETTER": {
 					Node: "LETTER",
 				},
-				{
+				"PERCENTAGE": {
 					Node: "PERCENTAGE",
 				},
 			},

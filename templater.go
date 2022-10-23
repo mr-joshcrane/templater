@@ -17,6 +17,7 @@ import (
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/encoding/json"
 	"cuelang.org/go/encoding/yaml"
+	"golang.org/x/exp/maps"
 )
 
 var (
@@ -35,9 +36,9 @@ var SnowflakeTypes = map[string]string{
 }
 
 type Field struct {
-	Node string
-	Path string
-	Type string
+	Node        string
+	Path        string
+	InferedType string
 }
 type SQLTemplate struct {
 	Tags    string
@@ -48,8 +49,7 @@ type SQLTemplate struct {
 type Table struct {
 	Name        string
 	Project     string
-	Fields      []Field
-	TypeMap     map[string]string
+	Fields      map[string]Field
 	SQLTemplate SQLTemplate
 }
 type Metadata struct {
@@ -64,16 +64,20 @@ func GenerateSourceSQL(project, table string) string {
 	return fmt.Sprintf("  {{ source('%s', '%s') }}", strings.ToUpper(project), strings.ToUpper(table))
 }
 
-func GenerateColumnsSQL(fields []Field) string {
+func GenerateColumnsSQL(f map[string]Field) string {
+	fields := maps.Values(f)
 	column_data := ""
 	sort.Slice(fields, func(i, j int) bool {
+		if fields[i].Node[0] == '_' && fields[j].Node[0] != '_' {
+			return false
+		}
 		return fields[i].Node < fields[j].Node
 	})
-
 	for _, field := range fields {
-		quotedPath := strings.ReplaceAll(field.Path, `:`, `":"`)
+		quotedPath := strings.ReplaceAll(field.Path, `"`, "")
+		quotedPath = strings.ReplaceAll(quotedPath, `:`, `":"`)
 		quotedPath = strings.ReplaceAll(quotedPath, `.`, `"."`)
-		column_data += fmt.Sprintf(`  ,"%s"::%s AS %s`, quotedPath, field.Type, formatKey(field.Node))
+		column_data += fmt.Sprintf(`  ,"%s"::%s AS %s`, quotedPath, field.InferedType, formatKey(field.Node))
 		column_data += "\n"
 	}
 	// strip the first comma out
@@ -128,8 +132,7 @@ func GenerateTemplate(filePaths []string) error {
 
 		table := Table{
 			Name:        tableName,
-			Fields:      []Field{},
-			TypeMap:     make(map[string]string),
+			Fields:      make(map[string]Field),
 			Project:     projectName,
 			SQLTemplate: SQLTemplate{},
 		}
@@ -152,34 +155,18 @@ func GenerateTemplate(filePaths []string) error {
 					panic(err)
 				}
 				v2 := c.BuildExpr(e)
-				v2.Walk(stopCondition, func(c cue.Value) { unpack(&table, c, func(s string) string { return "V:" + s }) })
+				v2.Walk(stopCondition, func(c cue.Value) { unpack(&table, c, prefix ) })
 			}
-			
-			item.Value().Walk(func(c cue.Value) bool { return true }, func(c cue.Value) { unpack(&table, c) })
-			if len(table.TypeMap) == 0 {
+
+			item.Value().Walk(func(c cue.Value) bool { return true }, func(c cue.Value) { unpack(&table, c, func(s string) string { return strings.ReplaceAll(s, `"`, ``)} ) })
+			if len(table.Fields) == 0 {
 				return errors.New("empty JSON")
 			}
 
 		}
-		// Delete
-		delete(table.TypeMap, "V")
-		for k, v := range table.TypeMap {
-			k = strings.ReplaceAll(k, `"`, ``)
-			node := k
-			if strings.Contains(k, ":") {
-				node = strings.Join(strings.Split(k, ":")[1:], ":")
-			}
-			table.Fields = append(table.Fields, Field{
-				Path: k,
-				Type: v,
-				Node: formatKey(node),
-			})
-		}
+		delete(table.Fields, "V")
 
 		var body bytes.Buffer
-		sort.Slice(table.Fields, func(i, j int) bool {
-			return table.Fields[i].Node < table.Fields[j].Node
-		})
 
 		table.SQLTemplate = SQLTemplate{
 			Tags:    GenerateTagsSQL(table.Project, table.Name),
@@ -300,30 +287,45 @@ func stopCondition(c cue.Value) bool {
 
 type NameOption func(string) string
 
+func prefix(s string) string {
+	return "V:" + s
+}
+
 func unpack(t *Table, c cue.Value, opts ...NameOption) {
 	exp, err := regexp.Compile(`^[[0-9]*].`)
 	if err != nil {
 		panic(err)
 	}
-	p := c.Path().String()
-	p = exp.ReplaceAllString(p, "")
+	path := c.Path().String()
+	path = exp.ReplaceAllString(path, "")
+	node := path
+	node = formatKey(node)
 	for _, opt := range opts {
-		p = opt(p)
+		path = opt(path)
 	}
-	sfType := SnowflakeTypes[c.IncompleteKind().String()]
-	if strings.Contains(p, `[`) {
+	snowflakeType := SnowflakeTypes[c.IncompleteKind().String()]
+	if strings.Contains(path, `[`) {
 		return
 	}
-	if sfType == "OBJECT" {
+	if snowflakeType == "OBJECT" {
 		return
+	}
+	fmt.Println(node == path)
+	fmt.Println(node)
+	fmt.Println(path)
+	fmt.Println()
+	field := Field{
+		Node:        node,
+		Path:        path,
+		InferedType: snowflakeType,
 	}
 
-	if _, ok := t.TypeMap[p]; !ok {
-		t.TypeMap[p] = sfType
+	if _, ok := t.Fields[path]; !ok {
+		t.Fields[path] = field
 		return
 	}
-	prevType := t.TypeMap[p]
-	if prevType == "VARCHAR" || prevType == "" {
-		t.TypeMap[p] = sfType
+	existingField := t.Fields[path]
+	if existingField.InferedType == "VARCHAR" || existingField.InferedType == "" {
+		existingField.InferedType = snowflakeType
 	}
 }

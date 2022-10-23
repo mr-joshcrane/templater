@@ -1,11 +1,11 @@
 cd PROJECT
 exec main
 
-cmp output/BASEBALL.sql expected/BASEBALL.sql
-cmp output/FREQUENCY.sql expected/FREQUENCY.sql
-cmp output/public_schema.yml expected/public_schema.yml
-cmp output/transform_schema.yml expected/transform_schema.yml
-cmp output/source_schema.yml expected/source_schema.yml
+cmp expected/BASEBALL.sql output/BASEBALL.sql
+cmp expected/FREQUENCY.sql output/FREQUENCY.sql 
+cmp expected/public_schema.yml  output/public_schema.yml
+cmp expected/transform_schema.yml output/transform_schema.yml
+cmp expected/source_schema.yml output/source_schema.yml 
 
 
 -- PROJECT/BASEBALL.csv --

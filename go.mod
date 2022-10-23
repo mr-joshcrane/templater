@@ -10,6 +10,7 @@ require (
 require (
 	github.com/cockroachdb/apd/v2 v2.0.1 // indirect
 	github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e // indirect
+	golang.org/x/exp v0.0.0-20221019170559-20944726eadf // indirect
 	gonum.org/v1/gonum v0.9.1 // indirect
 )
 
