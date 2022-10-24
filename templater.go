@@ -12,16 +12,6 @@ import (
 	"cuelang.org/go/encoding/json"
 )
 
-var SnowflakeTypes = map[string]string{
-	"string": "STRING",
-	"int":    "INTEGER",
-	"float":  "FLOAT",
-	"struct": "OBJECT",
-	"list":   "ARRAY",
-	"null":   "VARCHAR",
-	"bool":   "BOOLEAN",
-}
-
 type Field struct {
 	Node        string
 	Path        string
@@ -35,7 +25,7 @@ type Table struct {
 	SQLTemplate SQLTemplate
 }
 
-func GenerateTemplate(filePaths []string) error {
+func GenerateTemplateFiles(filePaths []string) error {
 	c := cuecontext.New()
 	projectName := filepath.Dir(filePaths[0])
 	projectName = filepath.Base(projectName)
@@ -60,7 +50,7 @@ func GenerateTemplate(filePaths []string) error {
 
 		v := c.BuildExpr(expr)
 
-		table, err := MakeTable(v, tableName, projectName)
+		table, err := MakeTable(v, tableName, projectName, "V")
 		if err != nil {
 			return err
 		}
@@ -72,7 +62,7 @@ func GenerateTemplate(filePaths []string) error {
 			return err
 		}
 	}
-	
+
 	models := GenerateModel(tables)
 
 	err := WriteModelProperties("transform_schema.yml", c, models)
@@ -109,7 +99,7 @@ func Main() int {
 	}
 	_, err = os.Stat("output")
 	if err != nil {
-		err := os.Mkdir("output", 0777)
+		err := os.Mkdir("output", 0755)
 		if err != nil {
 			return 1
 		}
@@ -121,7 +111,7 @@ func Main() int {
 			files = append(files, p)
 		}
 	}
-	err = GenerateTemplate(files)
+	err = GenerateTemplateFiles(files)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		return 1

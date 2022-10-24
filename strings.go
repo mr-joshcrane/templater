@@ -2,8 +2,12 @@ package templater
 
 import (
 	"path/filepath"
+	"regexp"
 	"strings"
 )
+
+var arrayAtLineStart = regexp.MustCompile(`^[[0-9]*].`)
+var arrayInLine = regexp.MustCompile(`[\[[0-9]]`)
 
 func strip(s string) string {
 	var result strings.Builder
@@ -42,4 +46,19 @@ type NameOption func(string) string
 
 func prefix(s string) string {
 	return "V:" + s
+}
+
+func stripInitialArray(s string) string {
+	return arrayAtLineStart.ReplaceAllString(s, "")
+}
+
+func stripAndEscapeQuotes(s string) string {
+	s = strings.ReplaceAll(s, `"`, "")
+	s = strings.ReplaceAll(s, `:`, `":"`)
+	s = strings.ReplaceAll(s, `.`, `"."`)
+	return s
+}
+
+func containsArray(s string) bool {
+	return arrayInLine.MatchString(s)
 }
