@@ -71,21 +71,21 @@ func GenerateTemplate(filePaths []string) error {
 		if err != nil {
 			return err
 		}
+	}
+	
+	models := GenerateModel(tables)
 
-		model := GenerateModel(tables)
-
-		err = WriteModelProperties("transform_schema.yml", c, model)
-		if err != nil {
-			return err
-		}
-		err = WriteModelProperties("public_schema.yml", c, *model.AddDescriptions())
-		if err != nil {
-			return err
-		}
-		err = WriteSourceProperties("source_properties.yml", c, tables, projectName)
-		if err != nil {
-			return err
-		}
+	err := WriteModelProperties("transform_schema.yml", c, models)
+	if err != nil {
+		return err
+	}
+	err = WriteModelProperties("public_schema.yml", c, *models.AddDescriptions())
+	if err != nil {
+		return err
+	}
+	err = WriteSourceProperties("source_schema.yml", c, tables, projectName)
+	if err != nil {
+		return err
 	}
 	return nil
 }

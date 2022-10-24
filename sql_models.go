@@ -80,7 +80,6 @@ func GenerateSQLModel(table Table) error {
 }
 
 func WriteModelProperties(path string, c *cue.Context, model Models) error {
-
 	transformEncoded, err := yaml.Encode(c.Encode(model))
 	if err != nil {
 		return err
@@ -99,8 +98,9 @@ func WriteSourceProperties(path string, c *cue.Context, tables []*Table, project
 	if err != nil {
 		return err
 	}
+	path = fmt.Sprintf("output/%s", path)
 
-	err = os.WriteFile("output/source_schema.yml", sourceEncoded, 0644)
+	err = os.WriteFile(path, sourceEncoded, 0644)
 	if err != nil {
 		return err
 	}

@@ -88,10 +88,7 @@ func unpack(t *Table, c cue.Value, opts ...NameOption) {
 }
 
 func stopCondition(c cue.Value) bool {
-	exp, err := regexp.Compile(`^[[0-9]*].`)
-	if err != nil {
-		panic(err)
-	}
+	exp := regexp.MustCompile(`^[[0-9]*].`)
 	p := c.Path().String()
 	p = exp.ReplaceAllString(p, "")
 	if strings.Contains(p, `[`) {
