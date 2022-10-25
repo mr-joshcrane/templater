@@ -1,0 +1,18 @@
+cd PROJECT
+exec main
+cmp expected/SOMENULLVALUES.sql output/SOMENULLVALUES.sql 
+
+-- PROJECT/SOMENULLVALUES.csv --
+Letter,Frequency,Percentage
+"A",24373121,
+"B",4762938,
+"C",8982417,3.2
+
+-- PROJECT/expected/SOMENULLVALUES.sql --
+{{ config(tags=['PROJECT', 'SOMENULLVALUES']) }}
+SELECT
+  "Frequency"::INTEGER AS FREQUENCY
+  ,"Letter"::STRING AS LETTER
+  ,"Percentage"::FLOAT AS PERCENTAGE
+FROM
+  {{ source('PROJECT', 'SOMENULLVALUES') }}

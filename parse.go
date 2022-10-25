@@ -2,6 +2,7 @@ package templater
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"cuelang.org/go/cue"
@@ -34,7 +35,7 @@ func MakeTable(v cue.Value, tableName, projectName string, unpackPaths ...string
 		// if any, iterate through our raw VARIANTs and unpack them
 		for _, unpackPath := range unpackPaths {
 			unpackable := unpackJSON(item.Value(), unpackPath)
-			unpackable.Walk(stopCondition, func(c cue.Value) { unpack(&table, c, prefix) })
+			unpackable.Walk(continueUnpacking, func(c cue.Value) { unpack(&table, c, prefix) })
 
 		}
 
@@ -87,11 +88,12 @@ func unpack(t *Table, c cue.Value, opts ...NameOption) {
 	existingField := t.Fields[path]
 	// If we couldn't get a type example yet, we'll update
 	if existingField.InferedType == "VARCHAR" {
-		existingField.InferedType = inferredType
+		fmt.Println(inferredType)
+		t.Fields[path] = field
 	}
 }
 
-func stopCondition(c cue.Value) bool {
+func continueUnpacking(c cue.Value) bool {
 	path := stripInitialArray(c.Path().String())
 	// If at this point we hit a [ character, then we've hit a SECOND array and should stop walking
 	if containsArray(path) {

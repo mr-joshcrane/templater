@@ -71,7 +71,7 @@ func TestSourceStatementGeneratesCorrectly(t *testing.T) {
 	}
 }
 
-func TestGeneratesCorrectly(t *testing.T) {
+func TestGenerateModelTransformationFromTable(t *testing.T) {
 	t.Parallel()
 	tables := []*templater.Table{
 		{

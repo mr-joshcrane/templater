@@ -17,4 +17,4 @@ FROM
 -- PROJECT/JSON.csv --
 V,_ODS_LOAD_TIMESTAMP_UTC,_ODS_IS_DELETED,_ODS_EXTRACT_ID,_ODS_AIRFLOW_DAG_RUN_ID
 "{  ""attributes"": {    ""active"": true,    ""available_in"": ""risk"",    ""component"": [1,2,5]}}",2022-10-20T02:00:22.655092Z,FALSE,0f7293b3-10ad-45f8-b949-e6f742b61e5f,scheduled__2022-10-20T01:00:00+00:00
-"{  ""attributes"": {    ""active"": false,    ""available_in"": ""days"",    ""component"": [99,2.5,5]}}",2022-10-20T02:00:22.655092Z,FALSE,0f7293b3-10ad-45f8-b949-e6f742b61e5f,scheduled__2022-10-20T01:00:00+00:00
+"{  ""attributes"": {    ""active"": false,    ""available_in"": ""days"",    ""component"": [99,2.5,"{5,2,5}"]}}",2022-10-20T02:00:22.655092Z,FALSE,0f7293b3-10ad-45f8-b949-e6f742b61e5f,scheduled__2022-10-20T01:00:00+00:00
