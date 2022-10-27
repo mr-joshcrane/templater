@@ -6,9 +6,6 @@ import (
 	"strings"
 )
 
-var arrayAtLineStart = regexp.MustCompile(`^[[0-9]*].`)
-var arrayInLine = regexp.MustCompile(`[\[[0-9]]`)
-
 func strip(s string) string {
 	var result strings.Builder
 	for i := 0; i < len(s); i++ {
@@ -25,11 +22,14 @@ func strip(s string) string {
 	return result.String()
 }
 
-func formatKey(s string) string {
+var validCharacters = regexp.MustCompile(`[A-Z0-9._ ]*`)
+var camelCase = regexp.MustCompile(`([a-z])(A?)([A-Z])`)
+func NormaliseKey(s string) string {
+	s = camelCase.ReplaceAllString(s, `$1 $2 $3`)
 	s = strings.ToUpper(s)
-	s = strings.ReplaceAll(s, `(`, " ")
-	s = strip(s)
-	s = strings.TrimLeft(s, ` `)
+	s = strings.Join(validCharacters.FindAllString(s, -1), " ")
+	s = strings.Join(strings.Fields(s), "_")
+	s = strings.Trim(s, ` `)
 	s = strings.ReplaceAll(s, `.`, `__`)
 	s = strings.ReplaceAll(s, ` `, `_`)
 	return s
@@ -46,19 +46,4 @@ type NameOption func(string) string
 
 func prefix(s string) string {
 	return "V:" + s
-}
-
-func stripInitialArray(s string) string {
-	return arrayAtLineStart.ReplaceAllString(s, "")
-}
-
-func stripAndEscapeQuotes(s string) string {
-	s = strings.ReplaceAll(s, `"`, "")
-	s = strings.ReplaceAll(s, `:`, `":"`)
-	s = strings.ReplaceAll(s, `.`, `"."`)
-	return s
-}
-
-func containsArray(s string) bool {
-	return arrayInLine.MatchString(s)
 }

@@ -141,6 +141,81 @@ func TestGenerateModelTransformationFromTable(t *testing.T) {
 	}
 }
 
+func TestContainsArray_IsTrueWhenPathContainsArray(t *testing.T) {
+	t.Parallel()
+	path := "meta.mass_edit_custom_type_ids[123]"
+	if !templater.ContainsArray(path) {
+		t.Fatal(path)
+	}
+}
+
+func TestContainsArray_IsFalseWhenPathDoesNotContainArray(t *testing.T) {
+	t.Parallel()
+	path := "meta.mass_edit_custom_type_ids"
+	if templater.ContainsArray(path) {
+		t.Fatal(path)
+	}
+}
+
+func TestContainsArray_IsFalseWhenContainsOnlyLeadingArray(t *testing.T) {
+	t.Parallel()
+	path := "[123]meta.mass_edit_custom_type_ids"
+	if templater.ContainsArray(path) {
+		t.Fatal(path)
+	}
+}
+
+func TestNormaliseKey_NormalisesAKey(t *testing.T) {
+	t.Parallel()
+	tc := []struct {
+		Description string
+		Key         string
+		Want        string
+	}{
+		{
+			Description: "Should be uppercased",
+			Key:         "thisisakey",
+			Want:        "THISISAKEY",
+		},
+		{
+			Description: "Spaces should be converted to underscores",
+			Key:         "this is a key",
+			Want:        "THIS_IS_A_KEY",
+		},
+		{
+			Description: "Non alphanumeric or underscore characters should be stripped out",
+			Key:         "this%^@is``a()*key",
+			Want:        "THIS_IS_A_KEY",
+		},
+		{
+			Description: "JSON payloads separated by .'s should be separated instead by double underscore",
+			Key:         "json.payload.and_children",
+			Want:        "JSON__PAYLOAD__AND_CHILDREN",
+		},
+		{
+			Description: "Keys have leading and trailing spaces stripped",
+			Key:         "       THISISAKEY          ",
+			Want:        "THISISAKEY",
+		},
+		{
+			Description: "Parenthesised words are considered word boundaries",
+			Key:         "(THIS)IS(A)KEY",
+			Want:        "THIS_IS_A_KEY",
+		},
+		{
+			Description: "Camel Case is interpreted as a word boundary",
+			Key:         "thisIsAKey",
+			Want:        "THIS_IS_A_KEY",
+		},
+	}
+	for _, c := range tc {
+		got := templater.NormaliseKey(c.Key)
+		if c.Want != got {
+			t.Errorf("%s: wanted %s, got %s", c.Description, c.Want, got)
+		}
+	}
+}
+
 // TestScript -> Setup of files -> Should produce some outcome
 // Generate template:
 // creates a new context, then creates an output folder if one does not exist

@@ -42,7 +42,7 @@ func GenerateModel(tables []*Table) Models {
 		m := Model{}
 		m.Name = table.Name
 		for _, field := range table.Fields {
-			node := formatKey(field.Node)
+			node := NormaliseKey(field.Node)
 			col := Column{
 				Name: node,
 			}

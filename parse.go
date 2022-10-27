@@ -2,7 +2,7 @@ package templater
 
 import (
 	"errors"
-	"fmt"
+	"regexp"
 	"strings"
 
 	"cuelang.org/go/cue"
@@ -36,10 +36,17 @@ func MakeTable(v cue.Value, tableName, projectName string, unpackPaths ...string
 		for _, unpackPath := range unpackPaths {
 			unpackable := unpackJSON(item.Value(), unpackPath)
 			unpackable.Walk(continueUnpacking, func(c cue.Value) { unpack(&table, c, prefix) })
-
 		}
 
-		item.Value().Walk(func(c cue.Value) bool { return true }, func(c cue.Value) { unpack(&table, c, func(s string) string { return strings.ReplaceAll(s, `"`, ``) }) })
+		item.Value().Walk(
+			func(c cue.Value) bool {
+				return true
+			},
+			func(c cue.Value) {
+				unpack(&table, c, func(s string) string {
+					return strings.ReplaceAll(s, `"`, ``)
+				})
+			})
 		if len(table.Fields) == 0 {
 			return Table{}, errors.New("empty JSON")
 		}
@@ -55,12 +62,13 @@ func MakeTable(v cue.Value, tableName, projectName string, unpackPaths ...string
 }
 
 func unpack(t *Table, c cue.Value, opts ...NameOption) {
-	path := stripInitialArray(c.Path().String())
+	path := c.Path().String()
+	path = arrayAtLineStart.ReplaceAllString(path, "")
 	// If theres an array in this path, no need to unpack it
-	if containsArray(path) {
+	if arrayInLine.MatchString(path) {
 		return
 	}
-	node := formatKey(path)
+	node := NormaliseKey(path)
 
 	for _, opt := range opts {
 		path = opt(path)
@@ -88,18 +96,23 @@ func unpack(t *Table, c cue.Value, opts ...NameOption) {
 	existingField := t.Fields[path]
 	// If we couldn't get a type example yet, we'll update
 	if existingField.InferedType == "VARCHAR" {
-		fmt.Println(inferredType)
 		t.Fields[path] = field
 	}
 }
 
-func continueUnpacking(c cue.Value) bool {
-	path := stripInitialArray(c.Path().String())
-	// If at this point we hit a [ character, then we've hit a SECOND array and should stop walking
-	if containsArray(path) {
-		return false
+var arrayAtLineStart = regexp.MustCompile(`^[[0-9]*].`)
+var arrayInLine = regexp.MustCompile(`[\[[0-9]]`)
+
+func ContainsArray(path string) bool {
+	path = arrayAtLineStart.ReplaceAllString(path, "")
+	if arrayInLine.MatchString(path) {
+		return true
 	}
-	return true
+	return false
+}
+
+func continueUnpacking(c cue.Value) bool {
+	return !ContainsArray(c.Path().String())
 }
 
 func unpackJSON(item cue.Value, path string) cue.Value {
@@ -116,4 +129,11 @@ func unpackJSON(item cue.Value, path string) cue.Value {
 		unpackable = unpackable.Context().BuildExpr(e)
 	}
 	return unpackable
+}
+
+func stripAndEscapeQuotes(s string) string {
+	s = strings.ReplaceAll(s, `"`, "")
+	s = strings.ReplaceAll(s, `:`, `":"`)
+	s = strings.ReplaceAll(s, `.`, `"."`)
+	return s
 }

@@ -44,7 +44,7 @@ func GenerateColumnsSQL(f map[string]Field) string {
 	})
 	for _, field := range fields {
 
-		column_data += fmt.Sprintf(`  ,"%s"::%s AS %s`, field.Path, field.InferedType, formatKey(field.Node))
+		column_data += fmt.Sprintf(`  ,"%s"::%s AS %s`, field.Path, field.InferedType, NormaliseKey(field.Node))
 		column_data += "\n"
 	}
 	// strip the first comma out
