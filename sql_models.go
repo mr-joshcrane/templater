@@ -4,13 +4,10 @@ import (
 	"embed"
 	"fmt"
 	"io"
-	"os"
 	"sort"
 	"strings"
 	"text/template"
 
-	"cuelang.org/go/cue"
-	"cuelang.org/go/encoding/yaml"
 	"golang.org/x/exp/maps"
 )
 
@@ -66,33 +63,4 @@ func GenerateSQLModel(table Table, w io.Writer) error {
 		return err
 	}
 	return tpl.Execute(w, sqlTemplate)
-}
-
-func WriteProperties(c *cue.Context, models Models, sources Sources) error {
-	err := WritePropertyToFile("transform_schema.yml", c, models)
-	if err != nil {
-		return err
-	}
-	err = WritePropertyToFile("public_schema.yml", c, *models.AddDescriptions())
-	if err != nil {
-		return err
-	}
-	err = WritePropertyToFile("source_schema.yml", c, sources)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func WritePropertyToFile[T Sources | Models](path string, c *cue.Context, t T) error {
-	encoded, err := yaml.Encode(c.Encode(t))
-	if err != nil {
-		return err
-	}
-	path = fmt.Sprintf("output/%s", path)
-	err = os.WriteFile(path, encoded, 0644)
-	if err != nil {
-		return err
-	}
-	return nil
 }

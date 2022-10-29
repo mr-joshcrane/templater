@@ -2,7 +2,11 @@ package templater
 
 import (
 	"fmt"
+	"os"
 	"sort"
+
+	"cuelang.org/go/cue"
+	"cuelang.org/go/encoding/yaml"
 )
 
 type Test struct {
@@ -94,4 +98,33 @@ func generateSources(tables []*Table, projectName string) Sources {
 		Version: 2,
 		Sources: []Source{source},
 	}
+}
+
+func WriteProperties(c *cue.Context, models Models, sources Sources) error {
+	err := WritePropertyToFile("transform_schema.yml", c, models)
+	if err != nil {
+		return err
+	}
+	err = WritePropertyToFile("public_schema.yml", c, *models.AddDescriptions())
+	if err != nil {
+		return err
+	}
+	err = WritePropertyToFile("source_schema.yml", c, sources)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func WritePropertyToFile[T Sources | Models](path string, c *cue.Context, t T) error {
+	encoded, err := yaml.Encode(c.Encode(t))
+	if err != nil {
+		return err
+	}
+	path = fmt.Sprintf("output/%s", path)
+	err = os.WriteFile(path, encoded, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
 }
