@@ -36,19 +36,19 @@ func TestColumnStatementGeneratesCorrectly(t *testing.T) {
 	t.Parallel()
 	fields := map[string]templater.Field{
 		"Team": {
-			Path:        "Team",
-			Node:        "Team",
-			InferedType: "STRING",
+			Path:         "Team",
+			Node:         "Team",
+			InferredType: "STRING",
 		},
 		"Payroll(millions)": {
-			Path:        "Payroll(millions)",
-			Node:        "Payroll(millions)",
-			InferedType: "FLOAT",
+			Path:         "Payroll(millions)",
+			Node:         "Payroll(millions)",
+			InferredType: "FLOAT",
 		},
 		"Wins": {
-			Path:        "Wins",
-			Node:        "Wins",
-			InferedType: "INTEGER",
+			Path:         "Wins",
+			Node:         "Wins",
+			InferredType: "INTEGER",
 		},
 	}
 	got := templater.GenerateColumnsSQL(fields)

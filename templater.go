@@ -1,6 +1,7 @@
 package templater
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -10,12 +11,13 @@ import (
 
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/encoding/json"
+	"github.com/go-gota/gota/dataframe"
 )
 
 type Field struct {
-	Node        string
-	Path        string
-	InferedType string
+	Node         string
+	Path         string
+	InferredType string
 }
 
 type Table struct {
@@ -33,15 +35,19 @@ func GenerateTemplateFiles(filePaths []string) error {
 
 	for _, path := range filePaths {
 		contents, err := os.ReadFile(path)
-		if err == nil {
-			contents, err = CsvToJson(contents)
-			if err != nil {
-				return err
-			}
+		if err != nil {
+			return err
+		}
+		j := bytes.NewBuffer([]byte{})
+		reader := bytes.NewReader(contents)
+		df := dataframe.ReadCSV(reader, dataframe.WithLazyQuotes(true))
+		err = df.WriteJSON(j)
+		if err != nil {
+			return err
 		}
 		tableName := cleanTableName(path)
 
-		expr, err := json.Extract("", contents)
+		expr, err := json.Extract("", j.Bytes())
 		if err != nil {
 			fmt.Println(err)
 			return errors.New("unable to convert json to cue")
@@ -56,7 +62,12 @@ func GenerateTemplateFiles(filePaths []string) error {
 
 		tables = append(tables, &table)
 
-		err = GenerateSQLModel(table)
+		filename := fmt.Sprintf("output/%s.sql", table.Name)
+		file, err := os.Create(filename)
+		if err != nil {
+			return err
+		}
+		err = GenerateSQLModel(table, file)
 		if err != nil {
 			return err
 		}

@@ -100,9 +100,9 @@ func unpack(t *Table, c cue.Value, opts ...NameOption) {
 	}
 
 	field := Field{
-		Node:        node,
-		Path:        path,
-		InferedType: inferredType,
+		Node:         node,
+		Path:         path,
+		InferredType: inferredType,
 	}
 
 	if _, ok := t.Fields[path]; !ok {
@@ -111,7 +111,7 @@ func unpack(t *Table, c cue.Value, opts ...NameOption) {
 	}
 	existingField := t.Fields[path]
 	// If we couldn't get a type example yet, we'll update
-	if existingField.InferedType == "VARCHAR" {
+	if existingField.InferredType == "VARCHAR" {
 		t.Fields[path] = field
 	}
 }

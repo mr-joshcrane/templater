@@ -3,6 +3,7 @@ package templater
 import (
 	"embed"
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"strings"
@@ -43,7 +44,7 @@ func GenerateColumnsSQL(f map[string]Field) string {
 	})
 	for _, field := range fields {
 
-		column_data += fmt.Sprintf(`  ,"%s"::%s AS %s`, field.Path, field.InferedType, NormaliseKey(field.Node))
+		column_data += fmt.Sprintf(`  ,"%s"::%s AS %s`, field.Path, field.InferredType, NormaliseKey(field.Node))
 		column_data += "\n"
 	}
 	// strip the first comma out
@@ -54,12 +55,7 @@ func GenerateColumnsSQL(f map[string]Field) string {
 	return column_data
 }
 
-func GenerateSQLModel(table Table) error {
-	filename := fmt.Sprintf("output/%s.sql", table.Name)
-	file, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
+func GenerateSQLModel(table Table, w io.Writer) error {
 	sqlTemplate := SQLTemplate{
 		Tags:    GenerateTagsSQL(table.Project, table.Name),
 		Columns: GenerateColumnsSQL(table.Fields),
@@ -69,26 +65,26 @@ func GenerateSQLModel(table Table) error {
 	if err != nil {
 		return err
 	}
-	return tpl.Execute(file, sqlTemplate)
+	return tpl.Execute(w, sqlTemplate)
 }
 
 func WriteProperties(c *cue.Context, models Models, sources Sources) error {
-	err := WriteProperty("transform_schema.yml", c, models)
+	err := WritePropertyToFile("transform_schema.yml", c, models)
 	if err != nil {
 		return err
 	}
-	err = WriteProperty("public_schema.yml", c, *models.AddDescriptions())
+	err = WritePropertyToFile("public_schema.yml", c, *models.AddDescriptions())
 	if err != nil {
 		return err
 	}
-	err = WriteProperty("source_schema.yml", c, sources)
+	err = WritePropertyToFile("source_schema.yml", c, sources)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func WriteProperty[T Sources | Models](path string, c *cue.Context, t T) error {
+func WritePropertyToFile[T Sources | Models](path string, c *cue.Context, t T) error {
 	encoded, err := yaml.Encode(c.Encode(t))
 	if err != nil {
 		return err
