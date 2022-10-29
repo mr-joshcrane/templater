@@ -52,7 +52,7 @@ func GenerateColumnsSQL(f map[string]Field) string {
 	return column_data
 }
 
-func GenerateSQLModel(table Table, w io.Writer) error {
+func WriteSQLModel(table Table, w io.Writer) error {
 	sqlTemplate := SQLTemplate{
 		Tags:    GenerateTagsSQL(table.Project, table.Name),
 		Columns: GenerateColumnsSQL(table.Fields),
