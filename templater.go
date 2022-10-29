@@ -19,10 +19,9 @@ type Field struct {
 }
 
 type Table struct {
-	Name        string
-	Project     string
-	Fields      map[string]Field
-	SQLTemplate SQLTemplate
+	Name    string
+	Project string
+	Fields  map[string]Field
 }
 
 func GenerateTemplateFiles(filePaths []string) error {
@@ -64,20 +63,9 @@ func GenerateTemplateFiles(filePaths []string) error {
 	}
 
 	models := GenerateModel(tables)
+	sources := generateSources(tables, projectName)
 
-	err := WriteModelProperties("transform_schema.yml", c, models)
-	if err != nil {
-		return err
-	}
-	err = WriteModelProperties("public_schema.yml", c, *models.AddDescriptions())
-	if err != nil {
-		return err
-	}
-	err = WriteSourceProperties("source_schema.yml", c, tables, projectName)
-	if err != nil {
-		return err
-	}
-	return nil
+	return WriteProperties(c, models, sources)
 }
 
 func Main() int {
@@ -99,7 +87,7 @@ func Main() int {
 	}
 	_, err = os.Stat("output")
 	if err != nil {
-		err := os.Mkdir("output", 0755)
+		err := os.Mkdir("output", os.ModePerm)
 		if err != nil {
 			return 1
 		}

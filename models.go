@@ -1,7 +1,6 @@
 package templater
 
 import (
-	"bytes"
 	"embed"
 	"fmt"
 	"os"
@@ -56,9 +55,12 @@ func GenerateColumnsSQL(f map[string]Field) string {
 }
 
 func GenerateSQLModel(table Table) error {
-	var body bytes.Buffer
-
-	table.SQLTemplate = SQLTemplate{
+	filename := fmt.Sprintf("output/%s.sql", table.Name)
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	sqlTemplate := SQLTemplate{
 		Tags:    GenerateTagsSQL(table.Project, table.Name),
 		Columns: GenerateColumnsSQL(table.Fields),
 		Source:  GenerateSourceSQL(table.Project, table.Name),
@@ -67,40 +69,32 @@ func GenerateSQLModel(table Table) error {
 	if err != nil {
 		return err
 	}
-	err = tpl.Execute(&body, table.SQLTemplate)
+	return tpl.Execute(file, sqlTemplate)
+}
+
+func WriteProperties(c *cue.Context, models Models, sources Sources) error {
+	err := WriteProperty("transform_schema.yml", c, models)
 	if err != nil {
 		return err
 	}
-	filename := fmt.Sprintf("output/%s.sql", table.Name)
-	err = os.WriteFile(filename, body.Bytes(), 0644)
+	err = WriteProperty("public_schema.yml", c, *models.AddDescriptions())
+	if err != nil {
+		return err
+	}
+	err = WriteProperty("source_schema.yml", c, sources)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func WriteModelProperties(path string, c *cue.Context, model Models) error {
-	transformEncoded, err := yaml.Encode(c.Encode(model))
+func WriteProperty[T Sources | Models](path string, c *cue.Context, t T) error {
+	encoded, err := yaml.Encode(c.Encode(t))
 	if err != nil {
 		return err
 	}
 	path = fmt.Sprintf("output/%s", path)
-	err = os.WriteFile(path, transformEncoded, 0644)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func WriteSourceProperties(path string, c *cue.Context, tables []*Table, projectName string) error {
-	sourceModel := generateSources(tables, projectName)
-	sourceEncoded, err := yaml.Encode(c.Encode(sourceModel))
-	if err != nil {
-		return err
-	}
-	path = fmt.Sprintf("output/%s", path)
-
-	err = os.WriteFile(path, sourceEncoded, 0644)
+	err = os.WriteFile(path, encoded, 0644)
 	if err != nil {
 		return err
 	}

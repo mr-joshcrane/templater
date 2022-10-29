@@ -22,10 +22,9 @@ var SnowflakeTypes = map[string]string{
 
 func MakeTable(v cue.Value, tableName, projectName string, unpackPaths ...string) (Table, error) {
 	table := Table{
-		Name:        tableName,
-		Fields:      make(map[string]Field),
-		Project:     projectName,
-		SQLTemplate: SQLTemplate{},
+		Name:    tableName,
+		Fields:  make(map[string]Field),
+		Project: projectName,
 	}
 
 	item, err := v.List()
@@ -60,6 +59,22 @@ func MakeTable(v cue.Value, tableName, projectName string, unpackPaths ...string
 	}
 
 	return table, nil
+}
+
+func unpackJSON(item cue.Value, path string) cue.Value {
+	unpackable := item.Value().LookupPath(cue.ParsePath(path))
+	if unpackable.Exists() {
+		byt, err := unpackable.Bytes()
+		if err != nil {
+			panic(err)
+		}
+		e, err := json.Extract("", byt)
+		if err != nil {
+			panic(err)
+		}
+		unpackable = unpackable.Context().BuildExpr(e)
+	}
+	return unpackable
 }
 
 func unpack(t *Table, c cue.Value, opts ...NameOption) {
@@ -103,6 +118,8 @@ func unpack(t *Table, c cue.Value, opts ...NameOption) {
 
 var arrayAtLineStart = regexp.MustCompile(`^[[0-9]*].`)
 var arrayInLine = regexp.MustCompile(`[\[[0-9]]`)
+var validCharacters = regexp.MustCompile(`[A-Z0-9._ ]*`)
+var camelCase = regexp.MustCompile(`([a-z])(A?)([A-Z])`)
 
 func ContainsArray(path string) bool {
 	path = arrayAtLineStart.ReplaceAllString(path, "")
@@ -116,31 +133,12 @@ func continueUnpacking(c cue.Value) bool {
 	return !ContainsArray(c.Path().String())
 }
 
-func unpackJSON(item cue.Value, path string) cue.Value {
-	unpackable := item.Value().LookupPath(cue.ParsePath(path))
-	if unpackable.Exists() {
-		byt, err := unpackable.Bytes()
-		if err != nil {
-			panic(err)
-		}
-		e, err := json.Extract("", byt)
-		if err != nil {
-			panic(err)
-		}
-		unpackable = unpackable.Context().BuildExpr(e)
-	}
-	return unpackable
-}
-
 func stripAndEscapeQuotes(s string) string {
 	s = strings.ReplaceAll(s, `"`, "")
 	s = strings.ReplaceAll(s, `:`, `":"`)
 	s = strings.ReplaceAll(s, `.`, `"."`)
 	return s
 }
-
-var validCharacters = regexp.MustCompile(`[A-Z0-9._ ]*`)
-var camelCase = regexp.MustCompile(`([a-z])(A?)([A-Z])`)
 
 func NormaliseKey(s string) string {
 	s = camelCase.ReplaceAllString(s, `$1 $2 $3`)
@@ -153,14 +151,14 @@ func NormaliseKey(s string) string {
 	return s
 }
 
+type NameOption func(string) string
+
 func cleanTableName(path string) string {
 	tableName := filepath.Base(path)
 	tableName = strings.ToUpper(tableName)
 	tableName = strings.ReplaceAll(tableName, ".CSV", "")
 	return tableName
 }
-
-type NameOption func(string) string
 
 func prefix(s string) string {
 	return "V:" + s
