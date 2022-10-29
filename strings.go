@@ -6,22 +6,6 @@ import (
 	"strings"
 )
 
-func strip(s string) string {
-	var result strings.Builder
-	for i := 0; i < len(s); i++ {
-		b := s[i]
-		if ('a' <= b && b <= 'z') ||
-			('A' <= b && b <= 'Z') ||
-			('0' <= b && b <= '9') ||
-			b == '_' ||
-			b == ' ' ||
-			b == '.' {
-			result.WriteByte(b)
-		}
-	}
-	return result.String()
-}
-
 var validCharacters = regexp.MustCompile(`[A-Z0-9._ ]*`)
 var camelCase = regexp.MustCompile(`([a-z])(A?)([A-Z])`)
 func NormaliseKey(s string) string {
