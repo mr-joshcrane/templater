@@ -53,7 +53,7 @@ func GenerateTemplateFiles(filePaths []string) error {
 			return err
 		}
 
-		tableName := cleanTableName(path)
+		tableName := CleanTableName(path)
 
 		table, err := MakeTable(cueValue, tableName, projectName, "V")
 		if err != nil {

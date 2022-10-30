@@ -18,7 +18,7 @@ func TestMain(m *testing.M) {
 
 func TestScript(t *testing.T) {
 	t.Parallel()
-	testscript.Run(t, testscript.Params{Dir: "testdata/script"})
+	testscript.Run(t, testscript.Params{Dir: "./testdata/script"})
 }
 
 func TestTagStatementGeneratesCorrectly(t *testing.T) {
@@ -28,7 +28,7 @@ func TestTagStatementGeneratesCorrectly(t *testing.T) {
 	got := templater.GenerateTagsSQL(PROJECT, TABLE)
 	want := "{{ config(tags=['A_PROJECTNAME', 'A_TABLENAME']) }}"
 	if want != got {
-		t.Fatalf(cmp.Diff(got, want))
+		t.Fatalf(cmp.Diff(want, got))
 	}
 }
 
@@ -56,7 +56,7 @@ func TestColumnStatementGeneratesCorrectly(t *testing.T) {
   ,"Team"::STRING AS TEAM
   ,"Wins"::INTEGER AS WINS`
 	if want != got {
-		t.Fatalf(cmp.Diff(got, want))
+		t.Fatalf(cmp.Diff(want, got))
 	}
 }
 
@@ -67,7 +67,7 @@ func TestSourceStatementGeneratesCorrectly(t *testing.T) {
 	got := templater.GenerateSourceSQL(PROJECT, TABLE)
 	want := "  {{ source('A_PROJECTNAME', 'A_TABLENAME') }}"
 	if want != got {
-		t.Fatalf(cmp.Diff(got, want))
+		t.Fatalf("wanted %s, got %s", want, got)
 	}
 }
 
@@ -136,8 +136,8 @@ func TestGenerateModelTransformationFromTable(t *testing.T) {
 	}
 
 	got := templater.GenerateModel(tables)
-	if cmp.Equal(got, want) {
-		t.Fatalf(cmp.Diff(got, want))
+	if cmp.Equal(want, got) {
+		t.Fatalf(cmp.Diff(want, got))
 	}
 }
 
@@ -213,6 +213,24 @@ func TestNormaliseKey_NormalisesAKey(t *testing.T) {
 		if c.Want != got {
 			t.Errorf("%s: wanted %s, got %s", c.Description, c.Want, got)
 		}
+	}
+}
+
+func TestCleanTableName_DerivesATableNameFromItsPath(t *testing.T) {
+	t.Parallel()
+	got := templater.CleanTableName("some/file/path/table_NamE@.csv")
+	want := "TABLE_NAME"
+	if want != got {
+		t.Errorf("wanted %s, got %s", want, got)
+	}
+}
+
+func TestEscapePath(t *testing.T) {
+	t.Parallel()
+	got := templater.EscapePath(`V:attributes."available_in"`)
+	want := `"V":"attributes"."available_in"`
+	if want != got {
+		t.Errorf("wanted %s, got %s", want, got)
 	}
 }
 

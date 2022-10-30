@@ -40,8 +40,7 @@ func GenerateColumnsSQL(f map[string]Field) string {
 		return fields[i].Node < fields[j].Node
 	})
 	for _, field := range fields {
-
-		column_data += fmt.Sprintf(`  ,"%s"::%s AS %s`, field.Path, field.InferredType, NormaliseKey(field.Node))
+		column_data += fmt.Sprintf(`  ,%s::%s AS %s`, EscapePath(field.Path), field.InferredType, NormaliseKey(field.Node))
 		column_data += "\n"
 	}
 	// strip the first comma out

@@ -2,6 +2,7 @@ package templater
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -43,9 +44,7 @@ func MakeTable(v cue.Value, tableName, projectName string, unpackPaths ...string
 				return true
 			},
 			func(c cue.Value) {
-				unpack(&table, c, func(s string) string {
-					return strings.ReplaceAll(s, `"`, ``)
-				})
+				unpack(&table, c)
 			})
 		if len(table.Fields) == 0 {
 			return Table{}, errors.New("empty JSON")
@@ -53,7 +52,7 @@ func MakeTable(v cue.Value, tableName, projectName string, unpackPaths ...string
 
 		// if any remove any of the raw VARIANT originals
 		for _, unpackPath := range unpackPaths {
-			delete(table.Fields, unpackPath)
+			delete(table.Fields, EscapePath(unpackPath))
 		}
 
 	}
@@ -89,7 +88,7 @@ func unpack(t *Table, c cue.Value, opts ...NameOption) {
 	for _, opt := range opts {
 		path = opt(path)
 	}
-	path = stripAndEscapeQuotes(path)
+	path = EscapePath(path)
 
 	cueType := c.IncompleteKind().String()
 	inferredType := SnowflakeTypes[cueType]
@@ -133,10 +132,11 @@ func continueUnpacking(c cue.Value) bool {
 	return !ContainsArray(c.Path().String())
 }
 
-func stripAndEscapeQuotes(s string) string {
+func EscapePath(s string) string {
 	s = strings.ReplaceAll(s, `"`, "")
 	s = strings.ReplaceAll(s, `:`, `":"`)
 	s = strings.ReplaceAll(s, `.`, `"."`)
+	s = fmt.Sprintf(`"%s"`, s)
 	return s
 }
 
@@ -153,10 +153,11 @@ func NormaliseKey(s string) string {
 
 type NameOption func(string) string
 
-func cleanTableName(path string) string {
+func CleanTableName(path string) string {
 	tableName := filepath.Base(path)
 	tableName = strings.ToUpper(tableName)
 	tableName = strings.ReplaceAll(tableName, ".CSV", "")
+	tableName = strings.Join(validCharacters.FindAllString(tableName, -1), "")
 	return tableName
 }
 
