@@ -3,11 +3,13 @@ package templater
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
+	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
 	"github.com/go-gota/gota/dataframe"
 )
@@ -24,6 +26,16 @@ type Table struct {
 	Fields  map[string]Field
 }
 
+func ConvertToCueValue(c *cue.Context, r io.Reader) (cue.Value, error) {
+	buf := bytes.NewBuffer([]byte{})
+	df := dataframe.ReadCSV(r, dataframe.WithLazyQuotes(true))
+	err := df.WriteJSON(buf)
+	if err != nil {
+		return cue.Value{}, err
+	}
+	return c.CompileBytes(buf.Bytes()), nil
+}
+
 func GenerateTemplateFiles(filePaths []string) error {
 	c := cuecontext.New()
 	projectName := filepath.Dir(filePaths[0])
@@ -32,18 +44,14 @@ func GenerateTemplateFiles(filePaths []string) error {
 	tables := []*Table{}
 
 	for _, path := range filePaths {
-		buf := bytes.NewBuffer([]byte{})
 		contents, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
-		reader := bytes.NewReader(contents)
-		df := dataframe.ReadCSV(reader, dataframe.WithLazyQuotes(true))
-		err = df.WriteJSON(buf)
+		cueValue, err := ConvertToCueValue(c, bytes.NewReader(contents))
 		if err != nil {
 			return err
 		}
-		cueValue := c.CompileBytes(buf.Bytes())
 
 		tableName := cleanTableName(path)
 
