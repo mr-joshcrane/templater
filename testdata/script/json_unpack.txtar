@@ -1,8 +1,8 @@
 cd PROJECT
 exec main
-cmp expected/JSON.sql output/JSON.sql 
+cmp expected/transform/TRANS01_JSON.sql output/transform/TRANS01_JSON.sql 
 
--- PROJECT/expected/JSON.sql --
+-- PROJECT/expected/transform/TRANS01_JSON.sql --
 {{ config(tags=['PROJECT', 'JSON']) }}
 SELECT
   "V":"attributes"."active"::BOOLEAN AS ATTRIBUTES__ACTIVE

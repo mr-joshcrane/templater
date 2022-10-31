@@ -12,14 +12,16 @@ import (
 )
 
 var (
-	//go:embed template.gohtml
+	//go:embed templates/public_template.gohtml
+	//go:embed templates/transform_template.gohtml
 	fs embed.FS
 )
 
 type SQLTemplate struct {
-	Tags    string
-	Columns string
-	Source  string
+	Tags      string
+	Columns   string
+	Source    string
+	Reference string
 }
 
 func GenerateTagsSQL(project, table string) string {
@@ -28,6 +30,10 @@ func GenerateTagsSQL(project, table string) string {
 
 func GenerateSourceSQL(project, table string) string {
 	return fmt.Sprintf("  {{ source('%s', '%s') }}", strings.ToUpper(project), strings.ToUpper(table))
+}
+
+func GenerateReferenceSQL(table string) string {
+	return fmt.Sprintf(`{{ ref('TRANS01_%s') }}`, strings.ToUpper(table))
 }
 
 func GenerateColumnsSQL(f map[string]Field) string {
@@ -51,13 +57,25 @@ func GenerateColumnsSQL(f map[string]Field) string {
 	return column_data
 }
 
-func WriteSQLModel(table Table, w io.Writer) error {
+func WriteTransformSQLModel(table Table, w io.Writer) error {
 	sqlTemplate := SQLTemplate{
 		Tags:    GenerateTagsSQL(table.Project, table.Name),
 		Columns: GenerateColumnsSQL(table.Fields),
 		Source:  GenerateSourceSQL(table.Project, table.Name),
 	}
-	tpl, err := template.New("template.gohtml").ParseFS(fs, "template.gohtml")
+	tpl, err := template.New("transform_template.gohtml").ParseFS(fs, "templates/transform_template.gohtml")
+	if err != nil {
+		return err
+	}
+	return tpl.Execute(w, sqlTemplate)
+}
+
+func WritePublicSQLModel(table Table, w io.Writer) error {
+	sqlTemplate := SQLTemplate{
+		Tags:      GenerateTagsSQL(table.Project, table.Name),
+		Reference: GenerateReferenceSQL(table.Name),
+	}
+	tpl, err := template.New("public_template.gohtml").ParseFS(fs, "templates/public_template.gohtml")
 	if err != nil {
 		return err
 	}

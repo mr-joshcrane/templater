@@ -3,6 +3,7 @@ package templater
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -65,10 +66,12 @@ func unpackJSON(item cue.Value, path string) cue.Value {
 	if unpackable.Exists() {
 		byt, err := unpackable.Bytes()
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "path %s exists but failed to represent as bytes", path)
 			panic(err)
 		}
 		e, err := json.Extract("", byt)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "path %s exists but failed to convert from JSON to CUE", path)
 			panic(err)
 		}
 		unpackable = unpackable.Context().BuildExpr(e)

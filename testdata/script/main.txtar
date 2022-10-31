@@ -1,12 +1,15 @@
 cd PROJECT
 exec main
 
-cmp expected/BASEBALL.sql output/BASEBALL.sql
-cmp expected/FREQUENCY.sql output/FREQUENCY.sql 
-cmp expected/public_schema.yml  output/public_schema.yml
-cmp expected/transform_schema.yml output/transform_schema.yml
-cmp expected/source_schema.yml output/source_schema.yml 
+cmp expected/transform/_models_schema.yml output/transform/_models_schema.yml
+cmp expected/transform/TRANS01_BASEBALL.sql output/transform/TRANS01_BASEBALL.sql
+cmp expected/transform/TRANS01_FREQUENCY.sql output/transform/TRANS01_FREQUENCY.sql 
 
+cmp expected/_source_schema.yml output/_source_schema.yml 
+
+cmp expected/public/_models_schema.yml  output/public/_models_schema.yml
+cmp expected/public/BASEBALL.sql output/public/BASEBALL.sql
+cmp expected/public/FREQUENCY.sql output/public/FREQUENCY.sql
 
 -- PROJECT/BASEBALL.csv --
 "Team","Payroll(millions)","Wins"
@@ -20,7 +23,7 @@ Letter,Frequency,Percentage
 "B",4762938,1.6
 "C",8982417,3.0
 
--- PROJECT/expected/public_schema.yml --
+-- PROJECT/expected/public/_models_schema.yml --
 version: 2
 models:
   - name: BASEBALL
@@ -41,7 +44,7 @@ models:
         description: 'TODO: Description for COLUMN, LETTER'
       - name: PERCENTAGE
         description: 'TODO: Description for COLUMN, PERCENTAGE'
--- PROJECT/expected/transform_schema.yml --
+-- PROJECT/expected/transform/_models_schema.yml --
 version: 2
 models:
   - name: BASEBALL
@@ -54,7 +57,7 @@ models:
       - name: FREQUENCY
       - name: LETTER
       - name: PERCENTAGE
--- PROJECT/expected/source_schema.yml --
+-- PROJECT/expected/_source_schema.yml --
 version: 2
 sources:
   - name: PROJECT
@@ -64,7 +67,7 @@ sources:
         description: 'TODO: Description for TABLE, BASEBALL'
       - name: FREQUENCY
         description: 'TODO: Description for TABLE, FREQUENCY'
--- PROJECT/expected/BASEBALL.sql --
+-- PROJECT/expected/transform/TRANS01_BASEBALL.sql --
 {{ config(tags=['PROJECT', 'BASEBALL']) }}
 SELECT
   "Payroll(millions)"::FLOAT AS PAYROLL_MILLIONS
@@ -72,7 +75,7 @@ SELECT
   ,"Wins"::INTEGER AS WINS
 FROM
   {{ source('PROJECT', 'BASEBALL') }}
--- PROJECT/expected/FREQUENCY.sql --
+-- PROJECT/expected/transform/TRANS01_FREQUENCY.sql --
 {{ config(tags=['PROJECT', 'FREQUENCY']) }}
 SELECT
   "Frequency"::INTEGER AS FREQUENCY
@@ -80,3 +83,9 @@ SELECT
   ,"Percentage"::FLOAT AS PERCENTAGE
 FROM
   {{ source('PROJECT', 'FREQUENCY') }}
+-- PROJECT/expected/public/BASEBALL.sql --
+{{ config(tags=['PROJECT', 'BASEBALL']) }}
+{{ ref('TRANS01_BASEBALL') }}
+-- PROJECT/expected/public/FREQUENCY.sql --
+{{ config(tags=['PROJECT', 'FREQUENCY']) }}
+{{ ref('TRANS01_FREQUENCY') }}

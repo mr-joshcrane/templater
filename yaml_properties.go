@@ -101,15 +101,15 @@ func generateSources(tables []*Table, projectName string) Sources {
 }
 
 func WriteProperties(c *cue.Context, models Models, sources Sources) error {
-	err := WritePropertyToFile("transform_schema.yml", c, models)
+	err := WritePropertyToFile("transform/_models_schema.yml", c, models)
 	if err != nil {
 		return err
 	}
-	err = WritePropertyToFile("public_schema.yml", c, *models.AddDescriptions())
+	err = WritePropertyToFile("public/_models_schema.yml", c, *models.AddDescriptions())
 	if err != nil {
 		return err
 	}
-	err = WritePropertyToFile("source_schema.yml", c, sources)
+	err = WritePropertyToFile("_source_schema.yml", c, sources)
 	if err != nil {
 		return err
 	}

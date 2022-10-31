@@ -62,12 +62,21 @@ func GenerateTemplateFiles(filePaths []string) error {
 
 		tables = append(tables, &table)
 
-		filename := fmt.Sprintf("output/%s.sql", table.Name)
-		file, err := os.Create(filename)
+		transformFile := fmt.Sprintf("output/transform/TRANS01_%s.sql", table.Name)
+		file, err := os.Create(transformFile)
 		if err != nil {
 			return err
 		}
-		err = WriteSQLModel(table, file)
+		err = WriteTransformSQLModel(table, file)
+		if err != nil {
+			return err
+		}
+		publicFile := fmt.Sprintf("output/public/%s.sql", table.Name)
+		file, err = os.Create(publicFile)
+		if err != nil {
+			return err
+		}
+		err = WritePublicSQLModel(table, file)
 		if err != nil {
 			return err
 		}
@@ -99,6 +108,22 @@ func Main() int {
 	_, err = os.Stat("output")
 	if err != nil {
 		err := os.Mkdir("output", os.ModePerm)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
+			return 1
+		}
+	}
+	_, err = os.Stat("output/transform")
+	if err != nil {
+		err := os.Mkdir("output/transform", os.ModePerm)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
+			return 1
+		}
+	}
+	_, err = os.Stat("output/public")
+	if err != nil {
+		err := os.Mkdir("output/public", os.ModePerm)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err.Error())
 			return 1

@@ -1,6 +1,6 @@
 cd PROJECT
 exec main
-cmp expected/SOMENULLVALUES.sql output/SOMENULLVALUES.sql 
+cmp expected/transform/TRANS01_SOMENULLVALUES.sql output/transform/TRANS01_SOMENULLVALUES.sql 
 
 -- PROJECT/SOMENULLVALUES.csv --
 Letter,Frequency,Percentage
@@ -8,7 +8,7 @@ Letter,Frequency,Percentage
 "B",4762938,
 "C",8982417,3.2
 
--- PROJECT/expected/SOMENULLVALUES.sql --
+-- PROJECT/expected/transform/TRANS01_SOMENULLVALUES.sql --
 {{ config(tags=['PROJECT', 'SOMENULLVALUES']) }}
 SELECT
   "Frequency"::INTEGER AS FREQUENCY
