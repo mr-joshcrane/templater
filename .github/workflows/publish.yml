@@ -12,7 +12,9 @@ jobs:
       with:
         build_command:  "CGO_ENABLED=0 GOOS=linux go build cmd/main.go -o templater"
         github_token: ${{ secrets.GITHUB_TOKEN }}
+        compress_assets: OFF
     - uses: wangyoucao577/go-release-action@v1.32
       with:
         build_command:  "CGO_ENABLED=0 GOOS=windows go build cmd/main.go -o templater.exe"
         github_token: ${{ secrets.GITHUB_TOKEN }}
+        compress_assets: OFF
