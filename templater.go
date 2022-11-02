@@ -55,11 +55,20 @@ func GenerateTemplateFiles(filePaths []string) error {
 
 		tableName := CleanTableName(path)
 
-		table, err := MakeTable(cueValue, tableName, projectName, "V")
+		table := Table{
+			Name:    tableName,
+			Fields:  make(map[string]Field),
+			Project: projectName,
+		}
+
+		iter, err := cueValue.List()
 		if err != nil {
 			return err
 		}
-
+		err = table.InferFields(iter, "V")
+		if err != nil {
+			return err
+		}
 		tables = append(tables, &table)
 
 		transformFile := fmt.Sprintf("output/transform/TRANS01_%s.sql", table.Name)

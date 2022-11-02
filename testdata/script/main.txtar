@@ -47,12 +47,12 @@ models:
 -- PROJECT/expected/transform/_models_schema.yml --
 version: 2
 models:
-  - name: BASEBALL
+  - name: TRANS01_BASEBALL
     columns:
       - name: PAYROLL_MILLIONS
       - name: TEAM
       - name: WINS
-  - name: FREQUENCY
+  - name: TRANS01_FREQUENCY
     columns:
       - name: FREQUENCY
       - name: LETTER

@@ -1,12 +1,15 @@
 package templater_test
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/rogpeppe/go-internal/testscript"
 
+	"cuelang.org/go/cue"
+	"cuelang.org/go/cue/cuecontext"
 	"github.com/mr-joshcrane/templater"
 )
 
@@ -19,6 +22,15 @@ func TestMain(m *testing.M) {
 func TestScript(t *testing.T) {
 	t.Parallel()
 	testscript.Run(t, testscript.Params{Dir: "./testdata/script"})
+}
+
+func createCueValue(t *testing.T, literal string) cue.Value {
+	c := cuecontext.New()
+	v := c.CompileString(literal)
+	if v.Err() != nil {
+		t.Fatal(v.Err())
+	}
+	return v
 }
 
 func TestTagStatementGeneratesCorrectly(t *testing.T) {
@@ -234,32 +246,98 @@ func TestEscapePath(t *testing.T) {
 	}
 }
 
-// TestScript -> Setup of files -> Should produce some outcome
-// Generate template:
-// creates a new context, then creates an output folder if one does not exist
-// func map for string functions
-// run the functions over a template, gohtml return a TEMPLATE
-// determine the project name
-// for each of the files:
-//		read the files contents
-//		attempt to convert it to json
-//		determine the tablename (from the file name)
-//		convert json to cue
-//		create an iterator
-//      create state to store data (?)
-//     	for type  in iterator
-//			unify it with the empty type (which will give us the type) (?)
-//			iterate through the fields again
-//			store the type if new
-//			supercede the type if insufficiently complex
-//
-//		if the length of the type map is 0, return error because empty json
-// 		append the key and the type to a table fields entry
-//		given table information, execute the template
-//		write out the template
-//		given the metadata, generate the transform
-//		write to disk
-//		given the metadata, generate the public
-//		write to disk
-//		given the metadata, generate the transform
-//		write to disk
+func TestInferFields_ErrorsIfGivenBlankJSON(t *testing.T) {
+	t.Parallel()
+	table := templater.Table{
+		Name:    "TABLE",
+		Project: "PROJECT",
+		Fields:  make(map[string]templater.Field),
+	}
+	v := createCueValue(t, "[{}]")
+	iter, err := v.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = table.InferFields(iter)
+	if err == nil {
+		t.Fatal("no error thrown when passed an empty JSON")
+	}
+}
+
+func TestInferFields_GivenRowInfersType(t *testing.T) {
+	t.Parallel()
+	table := templater.Table{
+		Name:    "TABLE",
+		Project: "PROJECT",
+		Fields:  make(map[string]templater.Field),
+	}
+	v := createCueValue(t, `[{a: 1, b: "2", c: true, d: 1.1, e: [1, 2, 3], f: {g: 1, h: "2"}}]`)
+	iter, err := v.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = table.InferFields(iter)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if table.Fields["a"].InferredType != "INTEGER" {
+		t.Fatalf("expected 'a' to be inferred as INTEGER, got %s", table.Fields["a"].InferredType)
+	}
+	if table.Fields["b"].InferredType != "STRING" {
+		t.Fatalf("expected 'b' to be inferred as STRING, got %s", table.Fields["b"].InferredType)
+	}
+	if table.Fields["c"].InferredType != "BOOLEAN" {
+		t.Fatalf("expected 'c' to be inferred as BOOLEAN, got %s", table.Fields["c"].InferredType)
+	}
+	if table.Fields["d"].InferredType != "FLOAT" {
+		t.Fatalf("expected 'd' to be inferred as FLOAT, got %s", table.Fields["d"].InferredType)
+	}
+	if table.Fields["e"].InferredType != "ARRAY" {
+		t.Fatalf("expected 'e' to be inferred as ARRAY, got %s", table.Fields["e"].InferredType)
+	}
+
+}
+
+func TestInferFields_GivenRowEscapesPath(t *testing.T) {
+	t.Parallel()
+	table := templater.Table{
+		Name:    "TABLE",
+		Project: "PROJECT",
+		Fields:  make(map[string]templater.Field),
+	}
+	v := createCueValue(t, `[{ PathToEscape: true,}]`)
+	iter, err := v.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = table.InferFields(iter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if table.Fields["PathToEscape"].Path != "\"PathToEscape\"" {
+		t.Fatalf("expected 'PathToEscape' to be escaped as \"PathToEscape\", got %s", table.Fields["PathToEscape"].Path)
+	}
+}
+
+func TestInferFields_GivenRowNormalisesNode(t *testing.T) {
+	t.Parallel()
+	table := templater.Table{
+		Name:    "TABLE",
+		Project: "PROJECT",
+		Fields:  make(map[string]templater.Field),
+	}
+	v := createCueValue(t, `[{ "this is a key": true,}]`)
+	iter, err := v.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = table.InferFields(iter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(table.Fields)
+	if table.Fields[`"this is a key"`].Node != "THIS_IS_A_KEY" {
+		t.Fatalf("expected 'this_is_a_key' to be normalised as THIS_IS_A_KEY, got %s", table.Fields["this is a key"].Node)
+	}
+}

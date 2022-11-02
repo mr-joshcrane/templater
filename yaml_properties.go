@@ -66,7 +66,9 @@ func GenerateModel(tables []*Table) Models {
 	}
 }
 
-func (m *Models) AddDescriptions() *Models {
+func (m Models) AddDescriptions() Models {
+	models := make([]Model, len(m.Models))
+	copy(models, m.Models)
 	for model := range m.Models {
 		modelDescription := fmt.Sprintf("TODO: Description for MODEL, %s", m.Models[model].Name)
 		m.Models[model].Description = &modelDescription
@@ -76,6 +78,18 @@ func (m *Models) AddDescriptions() *Models {
 		}
 	}
 	return m
+}
+
+func (m Models) AddPrefix(prefix string) Models {
+	models := make([]Model, len(m.Models))
+	copy(models, m.Models)
+	for model := range models {
+		models[model].Name = fmt.Sprintf("%s_%s", prefix, models[model].Name)
+	}
+	return Models{
+		Version: 2,
+		Models:  models,
+	}
 }
 
 func generateSources(tables []*Table, projectName string) Sources {
@@ -101,11 +115,12 @@ func generateSources(tables []*Table, projectName string) Sources {
 }
 
 func WriteProperties(c *cue.Context, models Models, sources Sources) error {
-	err := WritePropertyToFile("transform/_models_schema.yml", c, models)
+	err := WritePropertyToFile("transform/_models_schema.yml", c, models.AddPrefix("TRANS01"))
 	if err != nil {
 		return err
 	}
-	err = WritePropertyToFile("public/_models_schema.yml", c, *models.AddDescriptions())
+	fmt.Println(models)
+	err = WritePropertyToFile("public/_models_schema.yml", c, models.AddDescriptions())
 	if err != nil {
 		return err
 	}

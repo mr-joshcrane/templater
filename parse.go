@@ -22,43 +22,33 @@ var SnowflakeTypes = map[string]string{
 	"bool":   "BOOLEAN",
 }
 
-func MakeTable(v cue.Value, tableName, projectName string, unpackPaths ...string) (Table, error) {
-	table := Table{
-		Name:    tableName,
-		Fields:  make(map[string]Field),
-		Project: projectName,
-	}
-
-	item, err := v.List()
-	if err != nil {
-		return Table{}, errors.New("empty JSON")
-	}
-	for item.Next() {
+func (t *Table) InferFields(iter cue.Iterator, unpackPaths ...string) error {
+	for iter.Next() {
 		// if any, iterate through our raw VARIANTs and unpack them
 		for _, unpackPath := range unpackPaths {
-			unpackable := unpackJSON(item.Value(), unpackPath)
-			unpackable.Walk(continueUnpacking, func(c cue.Value) { unpack(&table, c, prefix) })
+			unpackable := unpackJSON(iter.Value(), unpackPath)
+			unpackable.Walk(continueUnpacking, func(c cue.Value) { Unpack(t, c, prefix) })
 		}
 
-		item.Value().Walk(
+		iter.Value().Walk(
 			func(c cue.Value) bool {
 				return true
 			},
 			func(c cue.Value) {
-				unpack(&table, c)
+				Unpack(t, c)
 			})
-		if len(table.Fields) == 0 {
-			return Table{}, errors.New("empty JSON")
+		if len(t.Fields) == 0 {
+			return errors.New("empty JSON")
 		}
 
 		// if any remove any of the raw VARIANT originals
 		for _, unpackPath := range unpackPaths {
-			delete(table.Fields, EscapePath(unpackPath))
+			delete(t.Fields, unpackPath)
 		}
 
 	}
 
-	return table, nil
+	return nil
 }
 
 func unpackJSON(item cue.Value, path string) cue.Value {
@@ -79,7 +69,7 @@ func unpackJSON(item cue.Value, path string) cue.Value {
 	return unpackable
 }
 
-func unpack(t *Table, c cue.Value, opts ...NameOption) {
+func Unpack(t *Table, c cue.Value, opts ...NameOption) {
 	path := c.Path().String()
 	path = arrayAtLineStart.ReplaceAllString(path, "")
 	// If theres an array in this path, no need to unpack it
@@ -91,7 +81,6 @@ func unpack(t *Table, c cue.Value, opts ...NameOption) {
 	for _, opt := range opts {
 		path = opt(path)
 	}
-	path = EscapePath(path)
 
 	cueType := c.IncompleteKind().String()
 	inferredType := SnowflakeTypes[cueType]
@@ -103,7 +92,7 @@ func unpack(t *Table, c cue.Value, opts ...NameOption) {
 
 	field := Field{
 		Node:         node,
-		Path:         path,
+		Path:         EscapePath(path),
 		InferredType: inferredType,
 	}
 
