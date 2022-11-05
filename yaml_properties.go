@@ -119,7 +119,6 @@ func WriteProperties(c *cue.Context, models Models, sources Sources) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(models)
 	err = WritePropertyToFile("public/_models_schema.yml", c, models.AddDescriptions())
 	if err != nil {
 		return err

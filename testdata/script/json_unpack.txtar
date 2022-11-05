@@ -1,5 +1,5 @@
 cd PROJECT
-exec main
+exec main V
 cmp expected/transform/TRANS01_JSON.sql output/transform/TRANS01_JSON.sql 
 
 -- PROJECT/expected/transform/TRANS01_JSON.sql --

@@ -3,7 +3,6 @@ package templater
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -26,8 +25,11 @@ func (t *Table) InferFields(iter cue.Iterator, unpackPaths ...string) error {
 	for iter.Next() {
 		// if any, iterate through our raw VARIANTs and unpack them
 		for _, unpackPath := range unpackPaths {
-			unpackable := unpackJSON(iter.Value(), unpackPath)
-			unpackable.Walk(continueUnpacking, func(c cue.Value) { Unpack(t, c, prefix) })
+			unpackable, err := UnpackJSON(iter.Value(), unpackPath)
+			if err != nil {
+				return err
+			}
+			unpackable.Walk(continueUnpacking, func(c cue.Value) { Unpack(t, c, func(s string) string {return fmt.Sprintf("%s:%s", unpackPath, s)}) })
 		}
 
 		iter.Value().Walk(
@@ -51,22 +53,21 @@ func (t *Table) InferFields(iter cue.Iterator, unpackPaths ...string) error {
 	return nil
 }
 
-func unpackJSON(item cue.Value, path string) cue.Value {
+func UnpackJSON(item cue.Value, path string) (cue.Value, error) {
 	unpackable := item.Value().LookupPath(cue.ParsePath(path))
-	if unpackable.Exists() {
-		byt, err := unpackable.Bytes()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "path %s exists but failed to represent as bytes", path)
-			panic(err)
-		}
-		e, err := json.Extract("", byt)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "path %s exists but failed to convert from JSON to CUE", path)
-			panic(err)
-		}
-		unpackable = unpackable.Context().BuildExpr(e)
+	if !unpackable.Exists() {
+		return unpackable, nil
 	}
-	return unpackable
+	byt, err := unpackable.Bytes()
+	if err != nil {
+		return cue.Value{}, err
+	}
+	e, err := json.Extract("", byt)
+	if err != nil {
+		return cue.Value{}, err
+	}
+	unpackable = unpackable.Context().BuildExpr(e)
+	return unpackable, nil
 }
 
 func Unpack(t *Table, c cue.Value, opts ...NameOption) {
@@ -151,8 +152,4 @@ func CleanTableName(path string) string {
 	tableName = strings.ReplaceAll(tableName, ".CSV", "")
 	tableName = strings.Join(validCharacters.FindAllString(tableName, -1), "")
 	return tableName
-}
-
-func prefix(s string) string {
-	return "V:" + s
 }

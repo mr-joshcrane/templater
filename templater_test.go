@@ -1,7 +1,6 @@
 package templater_test
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -336,8 +335,85 @@ func TestInferFields_GivenRowNormalisesNode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(table.Fields)
 	if table.Fields[`"this is a key"`].Node != "THIS_IS_A_KEY" {
 		t.Fatalf("expected 'this_is_a_key' to be normalised as THIS_IS_A_KEY, got %s", table.Fields["this is a key"].Node)
+	}
+}
+
+func TestInferFields_UnpacksAndRemovesRawEntry(t *testing.T) {
+	t.Parallel()
+	table := templater.Table{
+		Name:    "TABLE",
+		Project: "PROJECT",
+		Fields:  make(map[string]templater.Field),
+	}
+	v := createCueValue(t, `[{ unpackable: '{"field": 1}', "someVal": true,}]`)
+	iter, err := v.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = table.InferFields(iter, "unpackable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, ok := table.Fields["unpackable:field"]
+
+	if !ok {
+		t.Fatalf("expected unpackable field to be unpacked, but could not find it in %v", table.Fields)
+	}
+
+}
+
+func TestUnpackJSONCanUnpackSpecifiedField(t *testing.T) {
+	t.Parallel()
+	v := createCueValue(t, `{ unpackable: '{"a": 1}',}`)
+	got, err := templater.UnpackJSON(v, "unpackable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := createCueValue(t, `{a: 1}`)
+	if !want.Equals(got) {
+		t.Errorf("wanted %s, got %s", want, got)
+	}
+}
+
+func TestUnpackJSONRDoesNotTreatANonExistentFieldLookupAsAnError(t *testing.T) {
+	t.Parallel()
+	v := createCueValue(t, `{ unpackable: '{"a": 1}',}`)
+	_, err := templater.UnpackJSON(v, "nonexistent_field")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUnpackJSONErrorsOutOnInvalidJSON(t *testing.T) {
+	t.Parallel()
+	v := createCueValue(t, `{ unpackable: '{INVALID_JSON}',}`)
+	_, err := templater.UnpackJSON(v, "unpackable")
+	if err == nil {
+		t.Fatal()
+	}
+}
+
+func TestUnpackAttemptsToKeepInferringIfBestCurrentGuessIsVARCHAR(t *testing.T) {
+	t.Parallel()
+	table := templater.Table{
+		Name:    "TABLE",
+		Project: "PROJECT",
+		Fields:  make(map[string]templater.Field),
+	}
+	v := createCueValue(t, `[
+		{ a: null,},
+		{ a: null,},
+		{ a: 1,},
+		
+	]`)
+	iter, err := v.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	table.InferFields(iter)
+	if table.Fields["a"].InferredType != "INTEGER" {
+		t.Fatalf("expected 'a' to be inferred as INTEGER, got %s", table.Fields["a"].InferredType)
 	}
 }

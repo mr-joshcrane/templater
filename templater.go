@@ -36,7 +36,7 @@ func ConvertToCueValue(c *cue.Context, r io.Reader) (cue.Value, error) {
 	return c.CompileBytes(buf.Bytes()), nil
 }
 
-func GenerateTemplateFiles(filePaths []string) error {
+func GenerateTemplateFiles(filePaths []string, unpackPaths ...string) error {
 	c := cuecontext.New()
 	projectName := filepath.Dir(filePaths[0])
 	projectName = filepath.Base(projectName)
@@ -65,7 +65,7 @@ func GenerateTemplateFiles(filePaths []string) error {
 		if err != nil {
 			return err
 		}
-		err = table.InferFields(iter, "V")
+		err = table.InferFields(iter, unpackPaths...)
 		if err != nil {
 			return err
 		}
@@ -98,11 +98,6 @@ func GenerateTemplateFiles(filePaths []string) error {
 }
 
 func Main() int {
-	if len(os.Args) != 1 {
-		fmt.Fprintln(os.Stderr, "takes no arguments, run in the PROJECT folder and make sure CSV files are present")
-		return 1
-	}
-
 	workingDir, err := os.Getwd()
 	if err != nil {
 		fmt.Println(err)
@@ -145,7 +140,7 @@ func Main() int {
 			files = append(files, p)
 		}
 	}
-	err = GenerateTemplateFiles(files)
+	err = GenerateTemplateFiles(files, os.Args[1:]...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		return 1
