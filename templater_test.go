@@ -82,7 +82,7 @@ func TestSourceStatementGeneratesCorrectly(t *testing.T) {
 	}
 }
 
-func TestGenerateModelTransformationFromTable(t *testing.T) {
+func TestGenerateProjectModel_GivenASetOfTablesGeneratesAppropriateModel(t *testing.T) {
 	t.Parallel()
 	tables := []*templater.Table{
 		{
@@ -152,31 +152,31 @@ func TestGenerateModelTransformationFromTable(t *testing.T) {
 	}
 }
 
-func TestContainsArray_IsTrueWhenPathContainsArray(t *testing.T) {
+func TestContainsNonLeadingArray_IsTrueWhenPathContainsArray(t *testing.T) {
 	t.Parallel()
 	path := "meta.mass_edit_custom_type_ids[123]"
-	if !templater.ContainsArray(path) {
+	if !templater.ContainsNonLeadingArray(path) {
 		t.Fatal(path)
 	}
 }
 
-func TestContainsArray_IsFalseWhenPathDoesNotContainArray(t *testing.T) {
+func TestContainsNonLeadingArray_IsFalseWhenPathDoesNotContainArray(t *testing.T) {
 	t.Parallel()
 	path := "meta.mass_edit_custom_type_ids"
-	if templater.ContainsArray(path) {
+	if templater.ContainsNonLeadingArray(path) {
 		t.Fatal(path)
 	}
 }
 
-func TestContainsArray_IsFalseWhenContainsOnlyLeadingArray(t *testing.T) {
+func TestContainsNonLeadingArray_IsFalseWhenContainsOnlyLeadingArray(t *testing.T) {
 	t.Parallel()
 	path := "[123]meta.mass_edit_custom_type_ids"
-	if templater.ContainsArray(path) {
+	if templater.ContainsNonLeadingArray(path) {
 		t.Fatal(path)
 	}
 }
 
-func TestNormaliseKey_NormalisesAKey(t *testing.T) {
+func TestNormaliseKey_NormalisesKeyAccordingToRules(t *testing.T) {
 	t.Parallel()
 	tc := []struct {
 		Description string
@@ -227,7 +227,7 @@ func TestNormaliseKey_NormalisesAKey(t *testing.T) {
 	}
 }
 
-func TestCleanTableName_DerivesATableNameFromItsPath(t *testing.T) {
+func TestCleanTableName_DerivesAValidTableNameFromItsPath(t *testing.T) {
 	t.Parallel()
 	got := templater.CleanTableName("some/file/path/table_NamE@.csv")
 	want := "TABLE_NAME"
@@ -236,7 +236,7 @@ func TestCleanTableName_DerivesATableNameFromItsPath(t *testing.T) {
 	}
 }
 
-func TestEscapePath(t *testing.T) {
+func TestEscapePath_CorrectlySQLEscapesDatabaseIdentifiers(t *testing.T) {
 	t.Parallel()
 	got := templater.EscapePath(`V:attributes."available_in"`)
 	want := `"V":"attributes"."available_in"`
@@ -377,7 +377,7 @@ func TestUnpackJSONCanUnpackSpecifiedField(t *testing.T) {
 	}
 }
 
-func TestUnpackJSONRDoesNotTreatANonExistentFieldLookupAsAnError(t *testing.T) {
+func TestUnpackJSONDoesNotTreatANonExistentFieldLookupAsAnError(t *testing.T) {
 	t.Parallel()
 	v := createCueValue(t, `{ unpackable: '{"a": 1}',}`)
 	_, err := templater.UnpackJSON(v, "nonexistent_field")

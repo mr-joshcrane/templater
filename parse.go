@@ -113,7 +113,7 @@ var arrayInLine = regexp.MustCompile(`[\[[0-9]]`)
 var validCharacters = regexp.MustCompile(`[A-Z0-9._ ]*`)
 var camelCase = regexp.MustCompile(`([a-z])(A?)([A-Z])`)
 
-func ContainsArray(path string) bool {
+func ContainsNonLeadingArray(path string) bool {
 	path = arrayAtLineStart.ReplaceAllString(path, "")
 	if arrayInLine.MatchString(path) {
 		return true
@@ -122,7 +122,7 @@ func ContainsArray(path string) bool {
 }
 
 func continueUnpacking(c cue.Value) bool {
-	return !ContainsArray(c.Path().String())
+	return !ContainsNonLeadingArray(c.Path().String())
 }
 
 type NameOption func(string) string
