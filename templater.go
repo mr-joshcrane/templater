@@ -110,7 +110,6 @@ func GenerateTemplateFiles(fsys fs.FS, projectName string, unpackPaths ...string
 	return WriteProperties(c, models, sources)
 }
 
-
 func createDirectories() error {
 	_, err := os.Stat("output")
 	if err != nil {
@@ -157,4 +156,3 @@ func Main() int {
 	}
 	return 0
 }
-

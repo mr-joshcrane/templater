@@ -1,0 +1,27 @@
+cd PROJECT
+exec main
+exec cp ../UPDATED_VALUES.csv ./VALUES.csv
+exec main
+cmp expected/transform/TRANS01_VALUES.sql output/transform/TRANS01_VALUES.sql
+
+-- PROJECT/VALUES.csv --
+Letter,Frequency,Percentage
+"A",24373121,100
+"B",4762938,50.2
+"C",8982417,25
+
+-- UPDATED_VALUES.csv --
+Letter,Frequency,Percentage,Championships
+"A",24373121,100,1
+"B",4762938,50.2,3
+"C",8982417,25,5
+
+-- PROJECT/expected/transform/TRANS01_VALUES.sql --
+{{ config(tags=['PROJECT', 'VALUES']) }}
+SELECT
+  "Championships"::INTEGER AS CHAMPIONSHIPS
+  ,"Frequency"::INTEGER AS FREQUENCY
+  ,"Letter"::STRING AS LETTER
+  ,"Percentage"::INTEGER AS PERCENTAGE
+FROM
+  {{ source('PROJECT', 'VALUES') }}
