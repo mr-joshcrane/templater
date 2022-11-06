@@ -29,7 +29,7 @@ func (t *Table) InferFields(iter cue.Iterator, unpackPaths ...string) error {
 			if err != nil {
 				return err
 			}
-			unpackable.Walk(continueUnpacking, func(c cue.Value) { Unpack(t, c, func(s string) string {return fmt.Sprintf("%s:%s", unpackPath, s)}) })
+			unpackable.Walk(continueUnpacking, func(c cue.Value) { Unpack(t, c, func(s string) string { return fmt.Sprintf("%s:%s", unpackPath, s) }) })
 		}
 
 		iter.Value().Walk(

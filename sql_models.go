@@ -14,7 +14,7 @@ import (
 var (
 	//go:embed templates/public_template.gohtml
 	//go:embed templates/transform_template.gohtml
-	fs embed.FS
+	fileSystem embed.FS
 )
 
 type SQLTemplate struct {
@@ -63,7 +63,7 @@ func WriteTransformSQLModel(table Table, w io.Writer) error {
 		Columns: GenerateColumnsSQL(table.Fields),
 		Source:  GenerateSourceSQL(table.Project, table.Name),
 	}
-	tpl, err := template.New("transform_template.gohtml").ParseFS(fs, "templates/transform_template.gohtml")
+	tpl, err := template.New("transform_template.gohtml").ParseFS(fileSystem, "templates/transform_template.gohtml")
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func WritePublicSQLModel(table Table, w io.Writer) error {
 		Tags:      GenerateTagsSQL(table.Project, table.Name),
 		Reference: GenerateReferenceSQL(table.Name),
 	}
-	tpl, err := template.New("public_template.gohtml").ParseFS(fs, "templates/public_template.gohtml")
+	tpl, err := template.New("public_template.gohtml").ParseFS(fileSystem, "templates/public_template.gohtml")
 	if err != nil {
 		return err
 	}

@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
-	"strings"
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
@@ -21,9 +20,10 @@ type Field struct {
 }
 
 type Table struct {
-	Name    string
-	Project string
-	Fields  map[string]Field
+	Name        string
+	Project     string
+	Fields      map[string]Field
+	rawContents io.Reader
 }
 
 func ConvertToCueValue(c *cue.Context, r io.Reader) (cue.Value, error) {
@@ -36,29 +36,40 @@ func ConvertToCueValue(c *cue.Context, r io.Reader) (cue.Value, error) {
 	return c.CompileBytes(buf.Bytes()), nil
 }
 
-func GenerateTemplateFiles(filePaths []string, unpackPaths ...string) error {
+func GenerateTemplateFiles(fsys fs.FS, projectName string, unpackPaths ...string) error {
 	c := cuecontext.New()
-	projectName := filepath.Dir(filePaths[0])
-	projectName = filepath.Base(projectName)
 
 	tables := []*Table{}
+	err := fs.WalkDir(fsys, ".", func(path string, info fs.DirEntry, err error) error {
 
-	for _, path := range filePaths {
-		contents, err := os.ReadFile(path)
+		if info.IsDir() {
+			return nil
+		}
+		if filepath.Ext(path) == ".csv" {
+
+			f, err := fsys.Open(path)
+			if err != nil {
+				return err
+			}
+			contents := io.Reader(f)
+			table := Table{
+				Name:        CleanTableName(info.Name()),
+				Project:     projectName,
+				Fields:      make(map[string]Field),
+				rawContents: contents,
+			}
+			tables = append(tables, &table)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, table := range tables {
+		cueValue, err := ConvertToCueValue(c, table.rawContents)
 		if err != nil {
 			return err
-		}
-		cueValue, err := ConvertToCueValue(c, bytes.NewReader(contents))
-		if err != nil {
-			return err
-		}
-
-		tableName := CleanTableName(path)
-
-		table := Table{
-			Name:    tableName,
-			Fields:  make(map[string]Field),
-			Project: projectName,
 		}
 
 		iter, err := cueValue.List()
@@ -69,14 +80,12 @@ func GenerateTemplateFiles(filePaths []string, unpackPaths ...string) error {
 		if err != nil {
 			return err
 		}
-		tables = append(tables, &table)
-
 		transformFile := fmt.Sprintf("output/transform/TRANS01_%s.sql", table.Name)
 		file, err := os.Create(transformFile)
 		if err != nil {
 			return err
 		}
-		err = WriteTransformSQLModel(table, file)
+		err = WriteTransformSQLModel(*table, file)
 		if err != nil {
 			return err
 		}
@@ -85,7 +94,7 @@ func GenerateTemplateFiles(filePaths []string, unpackPaths ...string) error {
 		if err != nil {
 			return err
 		}
-		err = WritePublicSQLModel(table, file)
+		err = WritePublicSQLModel(*table, file)
 		if err != nil {
 			return err
 		}
@@ -103,12 +112,8 @@ func Main() int {
 		fmt.Println(err)
 	}
 
-	var files []string
-	dir, err := os.ReadDir(workingDir)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
-		return 1
-	}
+	fsys := os.DirFS(workingDir)
+
 	_, err = os.Stat("output")
 	if err != nil {
 		err := os.Mkdir("output", os.ModePerm)
@@ -134,13 +139,7 @@ func Main() int {
 		}
 	}
 
-	for _, file := range dir {
-		if strings.HasSuffix(file.Name(), ".csv") {
-			p := path.Join(workingDir, file.Name())
-			files = append(files, p)
-		}
-	}
-	err = GenerateTemplateFiles(files, os.Args[1:]...)
+	err = GenerateTemplateFiles(fsys, "PROJECT", os.Args[1:]...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		return 1
