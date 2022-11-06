@@ -142,6 +142,7 @@ func Main() int {
 	}
 
 	fsys := os.DirFS(workingDir)
+	project := filepath.Base(workingDir)
 
 	err = createDirectories()
 	if err != nil {
@@ -149,7 +150,7 @@ func Main() int {
 		return 1
 	}
 
-	err = GenerateTemplateFiles(fsys, "PROJECT", os.Args[1:]...)
+	err = GenerateTemplateFiles(fsys, project, os.Args[1:]...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		return 1
