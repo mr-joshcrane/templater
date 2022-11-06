@@ -125,6 +125,8 @@ func continueUnpacking(c cue.Value) bool {
 	return !ContainsArray(c.Path().String())
 }
 
+type NameOption func(string) string
+
 func EscapePath(s string) string {
 	s = strings.ReplaceAll(s, `"`, "")
 	s = strings.ReplaceAll(s, `:`, `":"`)
@@ -143,8 +145,6 @@ func NormaliseKey(s string) string {
 	s = strings.ReplaceAll(s, ` `, `_`)
 	return s
 }
-
-type NameOption func(string) string
 
 func CleanTableName(path string) string {
 	tableName := filepath.Base(path)
