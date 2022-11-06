@@ -146,7 +146,7 @@ func TestGenerateModelTransformationFromTable(t *testing.T) {
 		},
 	}
 
-	got := templater.GenerateModel(tables)
+	got := templater.GenerateProjectModel(tables)
 	if cmp.Equal(want, got) {
 		t.Fatalf(cmp.Diff(want, got))
 	}

@@ -40,7 +40,7 @@ type Model struct {
 	Columns     []Column `yaml:"columns"`
 }
 
-func GenerateModel(tables []*Table) Models {
+func GenerateProjectModel(tables []*Table) Models {
 	var models []Model
 	for _, table := range tables {
 		m := Model{}
@@ -92,7 +92,7 @@ func (m Models) AddPrefix(prefix string) Models {
 	}
 }
 
-func generateSources(tables []*Table, projectName string) Sources {
+func GenerateProjectSources(tables []*Table, projectName string) Sources {
 	var source Source
 
 	source.Name = projectName

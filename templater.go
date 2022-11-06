@@ -68,44 +68,58 @@ func GenerateTables(fsys fs.FS, projectName string, unpackPaths ...string) ([]*T
 	return tables, nil
 }
 
-func GenerateTemplateFiles(fsys fs.FS, projectName string, unpackPaths ...string) error {
+func generateTableModel(table *Table, c *cue.Context, unpackPaths ...string) error {
+	iterator, err := TableIterator(c, table.rawContents)
+	if err != nil {
+		return err
+	}
+
+	err = table.InferFields(iterator, unpackPaths...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func writeTableModel(table *Table) error {
+	transformFile := fmt.Sprintf("output/transform/TRANS01_%s.sql", table.Name)
+	file, err := os.Create(transformFile)
+	if err != nil {
+		return err
+	}
+	err = WriteTransformSQLModel(*table, file)
+	if err != nil {
+		return err
+	}
+	publicFile := fmt.Sprintf("output/public/%s.sql", table.Name)
+	file, err = os.Create(publicFile)
+	if err != nil {
+		return err
+	}
+	err = WritePublicSQLModel(*table, file)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GenerateProject(fsys fs.FS, projectName string, unpackPaths ...string) error {
 	c := cuecontext.New()
 	tables, err := GenerateTables(fsys, projectName, unpackPaths...)
 	if err != nil {
 		return err
 	}
 	for _, table := range tables {
-		iterator, err := TableIterator(c, table.rawContents)
+		err := generateTableModel(table, c, unpackPaths...)
 		if err != nil {
 			return err
 		}
-
-		err = table.InferFields(iterator, unpackPaths...)
-		if err != nil {
-			return err
-		}
-		transformFile := fmt.Sprintf("output/transform/TRANS01_%s.sql", table.Name)
-		file, err := os.Create(transformFile)
-		if err != nil {
-			return err
-		}
-		err = WriteTransformSQLModel(*table, file)
-		if err != nil {
-			return err
-		}
-		publicFile := fmt.Sprintf("output/public/%s.sql", table.Name)
-		file, err = os.Create(publicFile)
-		if err != nil {
-			return err
-		}
-		err = WritePublicSQLModel(*table, file)
-		if err != nil {
-			return err
-		}
+		writeTableModel(table)
 	}
 
-	models := GenerateModel(tables)
-	sources := generateSources(tables, projectName)
+	models := GenerateProjectModel(tables)
+	sources := GenerateProjectSources(tables, projectName)
 
 	return WriteProperties(c, models, sources)
 }
@@ -142,7 +156,8 @@ func Main() int {
 	}
 
 	fsys := os.DirFS(workingDir)
-	project := filepath.Base(workingDir)
+	projectName := filepath.Base(workingDir)
+	unpackFields := os.Args[1:]
 
 	err = createDirectories()
 	if err != nil {
@@ -150,7 +165,7 @@ func Main() int {
 		return 1
 	}
 
-	err = GenerateTemplateFiles(fsys, project, os.Args[1:]...)
+	err = GenerateProject(fsys, projectName, unpackFields...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		return 1
