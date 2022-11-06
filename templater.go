@@ -26,7 +26,7 @@ type Table struct {
 	rawContents io.Reader
 }
 
-func ConvertTableData(c *cue.Context, r io.Reader) (cue.Iterator, error) {
+func TableIterator(c *cue.Context, r io.Reader) (cue.Iterator, error) {
 	buf := bytes.NewBuffer([]byte{})
 	df := dataframe.ReadCSV(r, dataframe.WithLazyQuotes(true))
 	err := df.WriteJSON(buf)
@@ -75,7 +75,7 @@ func GenerateTemplateFiles(fsys fs.FS, projectName string, unpackPaths ...string
 		return err
 	}
 	for _, table := range tables {
-		iterator, err := ConvertTableData(c, table.rawContents)
+		iterator, err := TableIterator(c, table.rawContents)
 		if err != nil {
 			return err
 		}
