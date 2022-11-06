@@ -114,7 +114,13 @@ func GenerateProjectSources(tables []*Table, projectName string) Sources {
 	}
 }
 
-func WriteProperties(c *cue.Context, models Models, sources Sources) error {
+func WriteProject(c *cue.Context, models Models, sources Sources, tables []*Table) error {
+	for _, table := range tables {
+		err := writeTableModel(table)
+		if err != nil {
+			return err
+		}
+	}
 	err := WritePropertyToFile("transform/_models_schema.yml", c, models.AddPrefix("TRANS01"))
 	if err != nil {
 		return err

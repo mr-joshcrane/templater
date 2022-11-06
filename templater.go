@@ -34,13 +34,12 @@ func GenerateProject(fsys fs.FS, projectName string, unpackPaths ...string) erro
 		if err != nil {
 			return err
 		}
-		writeTableModel(table)
 	}
 
 	models := GenerateProjectModel(tables)
 	sources := GenerateProjectSources(tables, projectName)
 
-	return WriteProperties(c, models, sources)
+	return WriteProject(c, models, sources, tables)
 }
 
 func createProjectDirectories() error {
