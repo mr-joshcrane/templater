@@ -15,6 +15,10 @@ FIELDS_TO_UNPACK is an optional indications of which fields are JSON objects, ca
 
 1. Start with a raw CSV
 ![Start with a CSV](docs/csv.png)
-2. Run templater from the directory containing your collection of CSV files
+___
+2. Run templater from the directory containing your collection of CSV files, optionally specifying names of any JSON blobs to unpack 
+
+    `$ templater Career`
+___
 3. Get a nice DBT model and project config files in return!
 ![Start with a CSV](docs/sql_models.png)
