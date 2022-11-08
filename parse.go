@@ -21,11 +21,20 @@ var SnowflakeTypes = map[string]string{
 	"bool":   "BOOLEAN",
 }
 
+//InferFields takes a cue.Iterator and walks through it, adding fields to the table
+//It will also unpack any JSON fields where the column name matches the (optional) unpackPath
 func (t *Table) InferFields(iter cue.Iterator, unpackPaths ...string) error {
 	for iter.Next() {
 		// if any, iterate through our raw VARIANTs and unpack them
 		for _, unpackPath := range unpackPaths {
-			unpackable, err := UnpackJSON(iter.Value(), unpackPath)
+			JSONString, err := LookupCuePath(iter.Value(), unpackPath)
+			if err != nil {
+				return err
+			}
+			if !JSONString.Exists() {
+				continue
+			}
+			unpackable, err := MarshalJSONToCueVal(JSONString)
 			if err != nil {
 				return err
 			}
@@ -52,13 +61,18 @@ func (t *Table) InferFields(iter cue.Iterator, unpackPaths ...string) error {
 
 	return nil
 }
-
-func UnpackJSON(item cue.Value, path string) (cue.Value, error) {
-	unpackable := item.Value().LookupPath(cue.ParsePath(path))
-	if !unpackable.Exists() {
-		return unpackable, nil
+// LookupCuePath attenpts to find a child of a cue.Value at a given path
+func LookupCuePath(c cue.Value, path string) (cue.Value, error) {
+	lookupPath := cue.ParsePath(path)
+	if lookupPath.Err() != nil {
+		return cue.Value{}, lookupPath.Err()
 	}
-	byt, err := unpackable.Bytes()
+	return c.LookupPath(lookupPath), nil
+}
+// MarshalJSONToCueVal takes a cue.Value that is assumed to be a JSON string
+// and attempts to marshal it to JSON, returning an error if unable to do so
+func MarshalJSONToCueVal(c cue.Value) (cue.Value, error) {
+	byt, err := c.Bytes()
 	if err != nil {
 		return cue.Value{}, err
 	}
@@ -66,10 +80,10 @@ func UnpackJSON(item cue.Value, path string) (cue.Value, error) {
 	if err != nil {
 		return cue.Value{}, err
 	}
-	unpackable = unpackable.Context().BuildExpr(e)
-	return unpackable, nil
+	c = c.Context().BuildExpr(e)
+	return c, nil
 }
-
+// Unpack constructs a field from a cue.Value
 func Unpack(t *Table, c cue.Value, opts ...NameOption) {
 	path := c.Path().String()
 	path = arrayAtLineStart.ReplaceAllString(path, "")

@@ -367,7 +367,11 @@ func TestInferFields_UnpacksAndRemovesRawEntry(t *testing.T) {
 func TestUnpackJSONCanUnpackSpecifiedField(t *testing.T) {
 	t.Parallel()
 	v := createCueValue(t, `{ unpackable: '{"a": 1}',}`)
-	got, err := templater.UnpackJSON(v, "unpackable")
+	JSONString, err := templater.LookupCuePath(v, "unpackable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := templater.MarshalJSONToCueVal(JSONString)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -380,7 +384,11 @@ func TestUnpackJSONCanUnpackSpecifiedField(t *testing.T) {
 func TestUnpackJSONDoesNotTreatANonExistentFieldLookupAsAnError(t *testing.T) {
 	t.Parallel()
 	v := createCueValue(t, `{ unpackable: '{"a": 1}',}`)
-	_, err := templater.UnpackJSON(v, "nonexistent_field")
+	JSONString, err := templater.LookupCuePath(v, "unpackable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = templater.MarshalJSONToCueVal(JSONString)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -389,7 +397,11 @@ func TestUnpackJSONDoesNotTreatANonExistentFieldLookupAsAnError(t *testing.T) {
 func TestUnpackJSONErrorsOutOnInvalidJSON(t *testing.T) {
 	t.Parallel()
 	v := createCueValue(t, `{ unpackable: '{INVALID_JSON}',}`)
-	_, err := templater.UnpackJSON(v, "unpackable")
+	JSONString, err := templater.LookupCuePath(v, "unpackable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = templater.MarshalJSONToCueVal(JSONString)
 	if err == nil {
 		t.Fatal()
 	}
