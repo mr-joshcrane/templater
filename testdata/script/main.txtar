@@ -89,3 +89,5 @@ FROM
 -- PROJECT/expected/public/FREQUENCY.sql --
 {{ config(tags=['PROJECT', 'FREQUENCY']) }}
 {{ ref('TRANS01_FREQUENCY') }}
+-- PROJECT/mislabelledDirectory.csv/t.txt --
+Testing for the unlikely event that a directory ends in .csv

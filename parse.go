@@ -21,20 +21,18 @@ var SnowflakeTypes = map[string]string{
 	"bool":   "BOOLEAN",
 }
 
-//InferFields takes a cue.Iterator and walks through it, adding fields to the table
-//It will also unpack any JSON fields where the column name matches the (optional) unpackPath
+// InferFields takes a cue.Iterator and walks through it, adding fields to the table
+// It will also unpack any JSON fields where the column name matches the (optional) unpackPath
 func (t *Table) InferFields(iter cue.Iterator, unpackPaths ...string) error {
 	for iter.Next() {
 		// if any, iterate through our raw VARIANTs and unpack them
 		for _, unpackPath := range unpackPaths {
-			JSONString, err := LookupCuePath(iter.Value(), unpackPath)
+			JSONString, err := lookupCuePath(iter.Value(), unpackPath)
 			if err != nil {
 				return err
 			}
-			if !JSONString.Exists() {
-				continue
-			}
-			unpackable, err := MarshalJSONToCueVal(JSONString)
+
+			unpackable, err := UnmarshalJSONFromCUE(JSONString)
 			if err != nil {
 				return err
 			}
@@ -61,17 +59,19 @@ func (t *Table) InferFields(iter cue.Iterator, unpackPaths ...string) error {
 
 	return nil
 }
-// LookupCuePath attenpts to find a child of a cue.Value at a given path
-func LookupCuePath(c cue.Value, path string) (cue.Value, error) {
+
+// lookupCuePath attenpts to find a child of a cue.Value at a given path
+func lookupCuePath(c cue.Value, path string) (cue.Value, error) {
 	lookupPath := cue.ParsePath(path)
 	if lookupPath.Err() != nil {
 		return cue.Value{}, lookupPath.Err()
 	}
 	return c.LookupPath(lookupPath), nil
 }
-// MarshalJSONToCueVal takes a cue.Value that is assumed to be a JSON string
+
+// UnmarshalJSONFromCUE takes a [cue.Value] that is assumed to be a JSON string
 // and attempts to marshal it to JSON, returning an error if unable to do so
-func MarshalJSONToCueVal(c cue.Value) (cue.Value, error) {
+func UnmarshalJSONFromCUE(c cue.Value) (cue.Value, error) {
 	byt, err := c.Bytes()
 	if err != nil {
 		return cue.Value{}, err
@@ -83,6 +83,7 @@ func MarshalJSONToCueVal(c cue.Value) (cue.Value, error) {
 	c = c.Context().BuildExpr(e)
 	return c, nil
 }
+
 // Unpack constructs a field from a cue.Value
 func Unpack(t *Table, c cue.Value, opts ...NameOption) {
 	path := c.Path().String()
@@ -156,7 +157,6 @@ func NormaliseKey(s string) string {
 	s = strings.Join(strings.Fields(s), "_")
 	s = strings.Trim(s, ` `)
 	s = strings.ReplaceAll(s, `.`, `__`)
-	s = strings.ReplaceAll(s, ` `, `_`)
 	return s
 }
 

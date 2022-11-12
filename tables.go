@@ -27,10 +27,7 @@ func GenerateTables(fsys fs.FS, projectName string, unpackPaths ...string) ([]*T
 	tables := []*Table{}
 	err := fs.WalkDir(fsys, ".", func(path string, info fs.DirEntry, err error) error {
 
-		if info.IsDir() {
-			return nil
-		}
-		if filepath.Ext(path) == ".csv" {
+		if filepath.Ext(path) == ".csv" && !info.IsDir() {
 
 			f, err := fsys.Open(path)
 			if err != nil {

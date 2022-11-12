@@ -176,7 +176,7 @@ func TestContainsNonLeadingArray_IsFalseWhenContainsOnlyLeadingArray(t *testing.
 	}
 }
 
-func TestNormaliseKey_NormalisesKeyAccordingToRules(t *testing.T) {
+func TestNormaliseKey_Normalises(t *testing.T) {
 	t.Parallel()
 	tc := []struct {
 		Description string
@@ -220,10 +220,13 @@ func TestNormaliseKey_NormalisesKeyAccordingToRules(t *testing.T) {
 		},
 	}
 	for _, c := range tc {
-		got := templater.NormaliseKey(c.Key)
-		if c.Want != got {
-			t.Errorf("%s: wanted %s, got %s", c.Description, c.Want, got)
-		}
+		t.Run(c.Description, func(t *testing.T) {
+			got := templater.NormaliseKey(c.Key)
+			if c.Want != got {
+				t.Errorf("%s: wanted %s, got %s", c.Description, c.Want, got)
+			}
+		})
+
 	}
 }
 
@@ -361,17 +364,12 @@ func TestInferFields_UnpacksAndRemovesRawEntry(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected unpackable field to be unpacked, but could not find it in %v", table.Fields)
 	}
-
 }
 
-func TestUnpackJSONCanUnpackSpecifiedField(t *testing.T) {
+func TestUnmarshalJSONFromCUE_TranslatesJSONIntoItsCUERepresentation(t *testing.T) {
 	t.Parallel()
-	v := createCueValue(t, `{ unpackable: '{"a": 1}',}`)
-	JSONString, err := templater.LookupCuePath(v, "unpackable")
-	if err != nil {
-		t.Fatal(err)
-	}
-	got, err := templater.MarshalJSONToCueVal(JSONString)
+	v := createCueValue(t, `'{"a": 1}'`)
+	got, err := templater.UnmarshalJSONFromCUE(v)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -381,27 +379,10 @@ func TestUnpackJSONCanUnpackSpecifiedField(t *testing.T) {
 	}
 }
 
-func TestUnpackJSONDoesNotTreatANonExistentFieldLookupAsAnError(t *testing.T) {
+func TestUnmarshalJSONFromCUE_ErrorsOutOnInvalidJSON(t *testing.T) {
 	t.Parallel()
-	v := createCueValue(t, `{ unpackable: '{"a": 1}',}`)
-	JSONString, err := templater.LookupCuePath(v, "unpackable")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = templater.MarshalJSONToCueVal(JSONString)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestUnpackJSONErrorsOutOnInvalidJSON(t *testing.T) {
-	t.Parallel()
-	v := createCueValue(t, `{ unpackable: '{INVALID_JSON}',}`)
-	JSONString, err := templater.LookupCuePath(v, "unpackable")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = templater.MarshalJSONToCueVal(JSONString)
+	v := createCueValue(t, `'{INVALID_JSON}'`)
+	_, err := templater.UnmarshalJSONFromCUE(v)
 	if err == nil {
 		t.Fatal()
 	}

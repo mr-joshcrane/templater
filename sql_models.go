@@ -40,9 +40,6 @@ func GenerateColumnsSQL(f map[string]Field) string {
 	fields := maps.Values(f)
 	column_data := ""
 	sort.Slice(fields, func(i, j int) bool {
-		if fields[i].Node[0] == '_' && fields[j].Node[0] != '_' {
-			return false
-		}
 		return fields[i].Node < fields[j].Node
 	})
 	for _, field := range fields {
