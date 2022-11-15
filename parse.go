@@ -149,6 +149,11 @@ func continueUnpacking(c cue.Value) bool {
 
 type NameOption func(string) string
 
+// EscapePath escapes each section of the path into "delimited identifiers"
+// If we didn't do this, we'd end up with a path like:
+// foo.bar.baz instead of "foo"."bar"."baz", which would cause errors
+//
+// Reference: https://docs.snowflake.com/en/sql-reference/identifiers-syntax.html#delimited-identifiers
 func EscapePath(s string) string {
 	s = strings.ReplaceAll(s, `"`, "")
 	s = strings.ReplaceAll(s, `:`, `":"`)
@@ -157,6 +162,15 @@ func EscapePath(s string) string {
 	return s
 }
 
+// NormaliseKey takes a key and attempts to normalise it to a Snowflake-friendly format
+// It will:
+// - Convert from camelCase to SCREAMING_SNAKE_CASE
+// - Cast to uppercase
+// - Remove any non-underscore/non-alphanumeric characters
+// - Remove any leading/trailing spaces
+// - Convert spaces to underscores
+// - Replace any double underscores with single underscores
+// - Replace any dots with double underscores
 func NormaliseKey(s string) string {
 	s = camelCase.ReplaceAllString(s, `$1 $2 $3`)
 	s = strings.ToUpper(s)
@@ -167,6 +181,7 @@ func NormaliseKey(s string) string {
 	return s
 }
 
+// CleanTableName derives a table name from a file name in a Snowflake-friendly format
 func CleanTableName(path string) string {
 	tableName := filepath.Base(path)
 	tableName = strings.ToUpper(tableName)
