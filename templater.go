@@ -23,23 +23,23 @@ type Table struct {
 	rawContents io.Reader
 }
 
-func GenerateProject(fsys fs.FS, projectName string, unpackPaths ...string) error {
+func generateProject(fsys fs.FS, projectName string, unpackPaths ...string) error {
 	c := cuecontext.New()
-	tables, err := GenerateTables(fsys, projectName, unpackPaths...)
+	tables, err := generateTables(fsys, projectName, unpackPaths...)
 	if err != nil {
 		return err
 	}
 	for _, table := range tables {
-		err := GenerateTableFields(table, c, unpackPaths...)
+		err := generateTableFields(table, c, unpackPaths...)
 		if err != nil {
 			return err
 		}
 	}
 
 	models := GenerateProjectModel(tables)
-	sources := GenerateProjectSources(tables, projectName)
+	sources := generateProjectSources(tables, projectName)
 
-	return WriteProject(c, models, sources, tables)
+	return writeProject(c, models, sources, tables)
 }
 
 func createProjectDirectories() error {
@@ -83,7 +83,7 @@ func Main() int {
 		return 1
 	}
 
-	err = GenerateProject(fsys, projectName, unpackFields...)
+	err = generateProject(fsys, projectName, unpackFields...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		return 1

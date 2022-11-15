@@ -1,6 +1,7 @@
 package templater_test
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -42,6 +43,13 @@ func TestTagStatementGeneratesCorrectly(t *testing.T) {
 		t.Fatalf(cmp.Diff(want, got))
 	}
 }
+func ExampleGenerateTagsSQL() {
+	PROJECT := "A_ProjectName"
+	TABLE := "A_TableName"
+	fmt.Println(templater.GenerateTagsSQL(PROJECT, TABLE))
+	// Output:
+	// {{ config(tags=['A_PROJECTNAME', 'A_TABLENAME']) }}
+}
 
 func TestColumnStatementGeneratesCorrectly(t *testing.T) {
 	t.Parallel()
@@ -71,6 +79,31 @@ func TestColumnStatementGeneratesCorrectly(t *testing.T) {
 	}
 }
 
+func ExampleGenerateColumnsSQL() {
+	fields := map[string]templater.Field{
+		"Team": {
+			Path:         "Team",
+			Node:         "Team",
+			InferredType: "STRING",
+		},
+		"Payroll(millions)": {
+			Path:         "Payroll(millions)",
+			Node:         "Payroll(millions)",
+			InferredType: "FLOAT",
+		},
+		"Wins": {
+			Path:         "Wins",
+			Node:         "Wins",
+			InferredType: "INTEGER",
+		},
+	}
+	fmt.Println(templater.GenerateColumnsSQL(fields))
+	// Output:
+	//   "Payroll(millions)"::FLOAT AS PAYROLL_MILLIONS
+	//   ,"Team"::STRING AS TEAM
+	//   ,"Wins"::INTEGER AS WINS
+}
+
 func TestSourceStatementGeneratesCorrectly(t *testing.T) {
 	t.Parallel()
 	PROJECT := "A_ProjectName"
@@ -80,6 +113,14 @@ func TestSourceStatementGeneratesCorrectly(t *testing.T) {
 	if want != got {
 		t.Fatalf("wanted %s, got %s", want, got)
 	}
+}
+
+func ExampleGenerateSourceSQL() {
+	PROJECT := "A_ProjectName"
+	TABLE := "A_TableName"
+	fmt.Println(templater.GenerateSourceSQL(PROJECT, TABLE))
+	// Output:
+	//   {{ source('A_PROJECTNAME', 'A_TABLENAME') }}
 }
 
 func TestGenerateProjectModel_GivenASetOfTablesGeneratesAppropriateModel(t *testing.T) {
@@ -176,6 +217,19 @@ func TestContainsNonLeadingArray_IsFalseWhenContainsOnlyLeadingArray(t *testing.
 	}
 }
 
+func ExampleContainsNonLeadingArray() {
+	path1 := "meta.mass_edit_custom_type_ids[123]"
+	path2 := "meta.mass_edit_custom_type_ids"
+	path3 := "[123]meta.mass_edit_custom_type_ids"
+	fmt.Println(templater.ContainsNonLeadingArray(path1))
+	fmt.Println(templater.ContainsNonLeadingArray(path2))
+	fmt.Println(templater.ContainsNonLeadingArray(path3))
+	// Output:
+	// true
+	// false
+	// false
+}
+
 func TestNormaliseKey_Normalises(t *testing.T) {
 	t.Parallel()
 	tc := []struct {
@@ -228,6 +282,33 @@ func TestNormaliseKey_Normalises(t *testing.T) {
 		})
 
 	}
+}
+
+func ExampleNormaliseKey() {
+	rule_uppercased := "thisisakey"
+	rule_spaces_to_underscore := "this is a key"
+	rule_nonalphanumeric_stripped := "this%^@is``a()*key"
+	rule_dot_seperaters_to_double_underscore := "json.payload.and_children"
+	rule_leading_and_trailing_space_trimmed := "       THISISAKEY          "
+	rule_parenthesised_words_considered_word_boundaries := "(THIS)IS(A)KEY"
+	rule_camel_case_considered_seperate_words := "thisIsAKey"
+
+	fmt.Println(templater.NormaliseKey(rule_uppercased))
+	fmt.Println(templater.NormaliseKey(rule_spaces_to_underscore))
+	fmt.Println(templater.NormaliseKey(rule_nonalphanumeric_stripped))
+	fmt.Println(templater.NormaliseKey(rule_dot_seperaters_to_double_underscore))
+	fmt.Println(templater.NormaliseKey(rule_leading_and_trailing_space_trimmed))
+	fmt.Println(templater.NormaliseKey(rule_parenthesised_words_considered_word_boundaries))
+	fmt.Println(templater.NormaliseKey(rule_camel_case_considered_seperate_words))
+
+	// Output:
+	// THISISAKEY
+	// THIS_IS_A_KEY
+	// THIS_IS_A_KEY
+	// JSON__PAYLOAD__AND_CHILDREN
+	// THISISAKEY
+	// THIS_IS_A_KEY
+	// THIS_IS_A_KEY
 }
 
 func TestCleanTableName_DerivesAValidTableNameFromItsPath(t *testing.T) {

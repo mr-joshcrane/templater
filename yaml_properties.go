@@ -66,7 +66,7 @@ func GenerateProjectModel(tables []*Table) Models {
 	}
 }
 
-func (m Models) AddDescriptions() Models {
+func (m Models) addDescriptions() Models {
 	models := make([]Model, len(m.Models))
 	copy(models, m.Models)
 	for model := range m.Models {
@@ -80,7 +80,7 @@ func (m Models) AddDescriptions() Models {
 	return m
 }
 
-func (m Models) AddPrefix(prefix string) Models {
+func (m Models) addPrefix(prefix string) Models {
 	models := make([]Model, len(m.Models))
 	copy(models, m.Models)
 	for model := range models {
@@ -92,7 +92,7 @@ func (m Models) AddPrefix(prefix string) Models {
 	}
 }
 
-func GenerateProjectSources(tables []*Table, projectName string) Sources {
+func generateProjectSources(tables []*Table, projectName string) Sources {
 	var source Source
 
 	source.Name = projectName
@@ -114,29 +114,29 @@ func GenerateProjectSources(tables []*Table, projectName string) Sources {
 	}
 }
 
-func WriteProject(c *cue.Context, models Models, sources Sources, tables []*Table) error {
+func writeProject(c *cue.Context, models Models, sources Sources, tables []*Table) error {
 	for _, table := range tables {
 		err := writeTableModel(table)
 		if err != nil {
 			return err
 		}
 	}
-	err := WritePropertyToFile("transform/_models_schema.yml", c, models.AddPrefix("TRANS01"))
+	err := writePropertyToFile("transform/_models_schema.yml", c, models.addPrefix("TRANS01"))
 	if err != nil {
 		return err
 	}
-	err = WritePropertyToFile("public/_models_schema.yml", c, models.AddDescriptions())
+	err = writePropertyToFile("public/_models_schema.yml", c, models.addDescriptions())
 	if err != nil {
 		return err
 	}
-	err = WritePropertyToFile("_source_schema.yml", c, sources)
+	err = writePropertyToFile("_source_schema.yml", c, sources)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func WritePropertyToFile[T Sources | Models](path string, c *cue.Context, t T) error {
+func writePropertyToFile[T Sources | Models](path string, c *cue.Context, t T) error {
 	encoded, err := yaml.Encode(c.Encode(t))
 	if err != nil {
 		return err

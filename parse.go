@@ -11,6 +11,11 @@ import (
 	"cuelang.org/go/encoding/json"
 )
 
+// SnowflakeTypes is a map of CUE types to Snowflake types
+//
+// CUE Lang Type Reference: https://cuelang.org/docs/references/spec/#types
+//
+// Snowflake Type Reference: https://docs.snowflake.com/en/sql-reference/data-types.html
 var SnowflakeTypes = map[string]string{
 	"string": "STRING",
 	"int":    "INTEGER",
@@ -21,7 +26,7 @@ var SnowflakeTypes = map[string]string{
 	"bool":   "BOOLEAN",
 }
 
-// InferFields takes a cue.Iterator and walks through it, adding fields to the table
+// InferFields takes a [cue.Iterator] and walks through it, adding fields to the table
 // It will also unpack any JSON fields where the column name matches the (optional) unpackPath
 func (t *Table) InferFields(iter cue.Iterator, unpackPaths ...string) error {
 	for iter.Next() {
@@ -60,7 +65,7 @@ func (t *Table) InferFields(iter cue.Iterator, unpackPaths ...string) error {
 	return nil
 }
 
-// lookupCuePath attenpts to find a child of a cue.Value at a given path
+// lookupCuePath attempts to find a child of a [cue.Value] at a given path
 func lookupCuePath(c cue.Value, path string) (cue.Value, error) {
 	lookupPath := cue.ParsePath(path)
 	if lookupPath.Err() != nil {
@@ -84,7 +89,9 @@ func UnmarshalJSONFromCUE(c cue.Value) (cue.Value, error) {
 	return c, nil
 }
 
-// Unpack constructs a field from a cue.Value
+// Unpack constructs a [Field] from a [cue.Value] and adds it to the [Table]
+// A [NameOption] can be passed to modify the path of the field
+// Objects are recursively unpacked. Arrays are not.
 func Unpack(t *Table, c cue.Value, opts ...NameOption) {
 	path := c.Path().String()
 	path = arrayAtLineStart.ReplaceAllString(path, "")

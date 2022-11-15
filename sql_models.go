@@ -24,18 +24,28 @@ type SQLTemplate struct {
 	Reference string
 }
 
+// GenerateTagsSQL generates the config block tags suitable for use in a DBT Project Model
+//
+// Reference: https://docs.getdbt.com/reference/resource-configs/tags
 func GenerateTagsSQL(project, table string) string {
 	return fmt.Sprintf("{{ config(tags=['%s', '%s']) }}", strings.ToUpper(project), strings.ToUpper(table))
 }
 
+//GenerateSourceSQL generates a relation for a source table in a DBT Project Model
+//
+// Reference: https://docs.getdbt.com/reference/dbt-jinja-functions/source
 func GenerateSourceSQL(project, table string) string {
 	return fmt.Sprintf("  {{ source('%s', '%s') }}", strings.ToUpper(project), strings.ToUpper(table))
 }
 
+// GenerateReferenceSQL generates a relation for a source table in a DBT Project Model
+//
+// Reference: https://docs.getdbt.com/reference/dbt-jinja-functions/ref
 func GenerateReferenceSQL(table string) string {
 	return fmt.Sprintf(`{{ ref('TRANS01_%s') }}`, strings.ToUpper(table))
 }
 
+// Generate the SQL required to declare, rename and typecast the columns in a table in a DBT Project Model
 func GenerateColumnsSQL(f map[string]Field) string {
 	fields := maps.Values(f)
 	column_data := ""
@@ -54,7 +64,7 @@ func GenerateColumnsSQL(f map[string]Field) string {
 	return column_data
 }
 
-func WriteTransformSQLModel(table Table, w io.Writer) error {
+func writeTransformSQLModel(table Table, w io.Writer) error {
 	sqlTemplate := SQLTemplate{
 		Tags:    GenerateTagsSQL(table.Project, table.Name),
 		Columns: GenerateColumnsSQL(table.Fields),
@@ -67,7 +77,7 @@ func WriteTransformSQLModel(table Table, w io.Writer) error {
 	return tpl.Execute(w, sqlTemplate)
 }
 
-func WritePublicSQLModel(table Table, w io.Writer) error {
+func writePublicSQLModel(table Table, w io.Writer) error {
 	sqlTemplate := SQLTemplate{
 		Tags:      GenerateTagsSQL(table.Project, table.Name),
 		Reference: GenerateReferenceSQL(table.Name),

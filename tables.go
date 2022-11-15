@@ -12,7 +12,7 @@ import (
 	"github.com/go-gota/gota/dataframe"
 )
 
-func TableIterator(c *cue.Context, r io.Reader) (cue.Iterator, error) {
+func tableIterator(c *cue.Context, r io.Reader) (cue.Iterator, error) {
 	buf := bytes.NewBuffer([]byte{})
 	df := dataframe.ReadCSV(r, dataframe.WithLazyQuotes(true))
 	err := df.WriteJSON(buf)
@@ -23,7 +23,7 @@ func TableIterator(c *cue.Context, r io.Reader) (cue.Iterator, error) {
 	return cueValue.List()
 }
 
-func GenerateTables(fsys fs.FS, projectName string, unpackPaths ...string) ([]*Table, error) {
+func generateTables(fsys fs.FS, projectName string, unpackPaths ...string) ([]*Table, error) {
 	tables := []*Table{}
 	err := fs.WalkDir(fsys, ".", func(path string, info fs.DirEntry, err error) error {
 
@@ -50,8 +50,8 @@ func GenerateTables(fsys fs.FS, projectName string, unpackPaths ...string) ([]*T
 	return tables, nil
 }
 
-func GenerateTableFields(table *Table, c *cue.Context, unpackPaths ...string) error {
-	iterator, err := TableIterator(c, table.rawContents)
+func generateTableFields(table *Table, c *cue.Context, unpackPaths ...string) error {
+	iterator, err := tableIterator(c, table.rawContents)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func writeTableModel(table *Table) error {
 	if err != nil {
 		return err
 	}
-	err = WriteTransformSQLModel(*table, file)
+	err = writeTransformSQLModel(*table, file)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func writeTableModel(table *Table) error {
 	if err != nil {
 		return err
 	}
-	err = WritePublicSQLModel(*table, file)
+	err = writePublicSQLModel(*table, file)
 	if err != nil {
 		return err
 	}
