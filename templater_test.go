@@ -288,18 +288,18 @@ func ExampleNormaliseKey() {
 	rule_uppercased := "thisisakey"
 	rule_spaces_to_underscore := "this is a key"
 	rule_nonalphanumeric_stripped := "this%^@is``a()*key"
-	rule_dot_seperaters_to_double_underscore := "json.payload.and_children"
+	rule_dot_separaters_to_double_underscore := "json.payload.and_children"
 	rule_leading_and_trailing_space_trimmed := "       THISISAKEY          "
 	rule_parenthesised_words_considered_word_boundaries := "(THIS)IS(A)KEY"
-	rule_camel_case_considered_seperate_words := "thisIsAKey"
+	rule_camel_case_considered_separate_words := "thisIsAKey"
 
 	fmt.Println(templater.NormaliseKey(rule_uppercased))
 	fmt.Println(templater.NormaliseKey(rule_spaces_to_underscore))
 	fmt.Println(templater.NormaliseKey(rule_nonalphanumeric_stripped))
-	fmt.Println(templater.NormaliseKey(rule_dot_seperaters_to_double_underscore))
+	fmt.Println(templater.NormaliseKey(rule_dot_separaters_to_double_underscore))
 	fmt.Println(templater.NormaliseKey(rule_leading_and_trailing_space_trimmed))
 	fmt.Println(templater.NormaliseKey(rule_parenthesised_words_considered_word_boundaries))
-	fmt.Println(templater.NormaliseKey(rule_camel_case_considered_seperate_words))
+	fmt.Println(templater.NormaliseKey(rule_camel_case_considered_separate_words))
 
 	// Output:
 	// THISISAKEY
