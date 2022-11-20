@@ -2,6 +2,12 @@
 
 # templater
 
+**Quick Install**
+```bash
+go install github.com/mr-joshcrane/templater/cmd/templater@latest
+```
+---
+
 Templater generates DBT Models from raw CSV files.
 
 These Models have type inference, key normalisation, and generate most of the boilerplate code for you.
