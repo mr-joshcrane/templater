@@ -31,7 +31,7 @@ func GenerateTagsSQL(project, table string) string {
 	return fmt.Sprintf("{{ config(tags=['%s', '%s']) }}", strings.ToUpper(project), strings.ToUpper(table))
 }
 
-//GenerateSourceSQL generates a relation for a source table in a DBT Project Model
+// GenerateSourceSQL generates a relation for a source table in a DBT Project Model
 //
 // Reference: https://docs.getdbt.com/reference/dbt-jinja-functions/source
 func GenerateSourceSQL(project, table string) string {

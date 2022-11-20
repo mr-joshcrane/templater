@@ -170,7 +170,7 @@ func EscapePath(s string) string {
 //   - Remove any leading/trailing spaces
 //   - Convert spaces to underscores
 //   - Replace any double underscores with single underscores
-// 	 - Replace any dots with double underscores
+//   - Replace any dots with double underscores
 func NormaliseKey(s string) string {
 	s = camelCase.ReplaceAllString(s, `$1 $2 $3`)
 	s = strings.ToUpper(s)
