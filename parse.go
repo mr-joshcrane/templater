@@ -164,13 +164,13 @@ func EscapePath(s string) string {
 
 // NormaliseKey takes a key and attempts to normalise it to a Snowflake-friendly format
 // It will:
-// - Convert from camelCase to SCREAMING_SNAKE_CASE
-// - Cast to uppercase
-// - Remove any non-underscore/non-alphanumeric characters
-// - Remove any leading/trailing spaces
-// - Convert spaces to underscores
-// - Replace any double underscores with single underscores
-// - Replace any dots with double underscores
+//   - Convert from camelCase to SCREAMING_SNAKE_CASE
+//   - Cast to uppercase
+//   - Remove any non-underscore/non-alphanumeric characters
+//   - Remove any leading/trailing spaces
+//   - Convert spaces to underscores
+//   - Replace any double underscores with single underscores
+// 	 - Replace any dots with double underscores
 func NormaliseKey(s string) string {
 	s = camelCase.ReplaceAllString(s, `$1 $2 $3`)
 	s = strings.ToUpper(s)
