@@ -33,7 +33,7 @@ Sometimes you will have nested JSON data that needs to be flattened before it ca
 Templater can be used to allieviate some of the burden here!
 
 ---
-Imagine we had the following data in a CSV file as `ENERGY.csv`:
+Imagine we had a table in Snowflake called `ENERGY` and we dumped it out to a CSV file as `ENERGY.csv`:
 
 <table>
   <tr>
