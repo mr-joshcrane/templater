@@ -11,11 +11,11 @@ import (
 	"cuelang.org/go/encoding/json"
 )
 
-// SnowflakeTypes is a map of CUE types to Snowflake types
+// SnowflakeTypes is a map of CUE types to Snowflake types.
 //
-// CUE Lang Type Reference: https://cuelang.org/docs/references/spec/#types
+// CUE Lang Type Reference: https://cuelang.org/docs/references/spec/#types.
 //
-// Snowflake Type Reference: https://docs.snowflake.com/en/sql-reference/data-types.html
+// Snowflake Type Reference: https://docs.snowflake.com/en/sql-reference/data-types.html.
 var SnowflakeTypes = map[string]string{
 	"string": "STRING",
 	"int":    "INTEGER",
@@ -26,11 +26,11 @@ var SnowflakeTypes = map[string]string{
 	"bool":   "BOOLEAN",
 }
 
-// InferFields takes a [cue.Iterator] and walks through it, adding fields to the table
-// It will also unpack any JSON fields where the column name matches the (optional) unpackPath
+// InferFields takes a [cue.Iterator] and walks through it, adding fields to the table.
+// It will also unpack any JSON fields where the column name matches the (optional) unpackPath.
 func (t *Table) InferFields(iter cue.Iterator, unpackPaths ...string) error {
 	for iter.Next() {
-		// if any, iterate through our raw VARIANTs and unpack them
+		// if any, iterate through our raw VARIANTs and unpack them.
 		for _, unpackPath := range unpackPaths {
 			JSONString, err := lookupCuePath(iter.Value(), unpackPath)
 			if err != nil {
@@ -55,7 +55,7 @@ func (t *Table) InferFields(iter cue.Iterator, unpackPaths ...string) error {
 			return errors.New("empty JSON")
 		}
 
-		// if any remove any of the raw VARIANT originals
+		// if any remove any of the raw VARIANT originals.
 		for _, unpackPath := range unpackPaths {
 			delete(t.Fields, unpackPath)
 		}
@@ -65,7 +65,7 @@ func (t *Table) InferFields(iter cue.Iterator, unpackPaths ...string) error {
 	return nil
 }
 
-// lookupCuePath attempts to find a child of a [cue.Value] at a given path
+// lookupCuePath attempts to find a child of a [cue.Value] at a given path.
 func lookupCuePath(c cue.Value, path string) (cue.Value, error) {
 	lookupPath := cue.ParsePath(path)
 	if lookupPath.Err() != nil {
@@ -75,7 +75,7 @@ func lookupCuePath(c cue.Value, path string) (cue.Value, error) {
 }
 
 // UnmarshalJSONFromCUE takes a [cue.Value] that is assumed to be a JSON string
-// and attempts to marshal it to JSON, returning an error if unable to do so
+// and attempts to marshal it to JSON, returning an error if unable to do so.
 func UnmarshalJSONFromCUE(c cue.Value) (cue.Value, error) {
 	byt, err := c.Bytes()
 	if err != nil {
@@ -89,13 +89,13 @@ func UnmarshalJSONFromCUE(c cue.Value) (cue.Value, error) {
 	return c, nil
 }
 
-// Unpack constructs a [Field] from a [cue.Value] and adds it to the [Table]
-// A [NameOption] can be passed to modify the path of the field
+// Unpack constructs a [Field] from a [cue.Value] and adds it to the [Table].
+// A [NameOption] can be passed to modify the path of the field.
 // Objects are recursively unpacked. Arrays are not.
 func Unpack(t *Table, c cue.Value, opts ...NameOption) {
 	path := c.Path().String()
 	path = arrayAtLineStart.ReplaceAllString(path, "")
-	// If theres an array in this path, no need to unpack it
+	// If theres an array in this path, no need to unpack it.
 	if arrayInLine.MatchString(path) {
 		return
 	}
@@ -108,7 +108,7 @@ func Unpack(t *Table, c cue.Value, opts ...NameOption) {
 	cueType := c.IncompleteKind().String()
 	inferredType := SnowflakeTypes[cueType]
 
-	// If we've found an object, no need keep track of it. We'll walk into the member objects instead
+	// If we've found an object, no need keep track of it. We'll walk into the member objects instead.
 	if inferredType == "OBJECT" {
 		return
 	}
@@ -124,7 +124,7 @@ func Unpack(t *Table, c cue.Value, opts ...NameOption) {
 		return
 	}
 	existingField := t.Fields[path]
-	// If we couldn't get a type example yet, we'll update
+	// If we couldn't get a type example yet, we'll update.
 	if existingField.InferredType == "VARCHAR" {
 		t.Fields[path] = field
 	}
@@ -132,7 +132,14 @@ func Unpack(t *Table, c cue.Value, opts ...NameOption) {
 
 var arrayAtLineStart = regexp.MustCompile(`^[[0-9]*].`)
 var arrayInLine = regexp.MustCompile(`[\[[0-9]]`)
+
+// validCharacters in this context is a list of characters that are valid unquoted Snowflake Identifiers.
+//
+// Reference: https://docs.snowflake.com/en/sql-reference/identifiers-syntax.html#unquoted-identifier-syntax.
 var validCharacters = regexp.MustCompile(`[A-Z0-9._ ]*`)
+
+// camelCase regex will match on any camel case word boundary.
+// ie. Running through the regex "camelCaseWordBoundaries" will match on "lC", "eW", and "dB".
 var camelCase = regexp.MustCompile(`([a-z])(A?)([A-Z])`)
 
 func ContainsNonLeadingArray(path string) bool {
@@ -149,11 +156,11 @@ func continueUnpacking(c cue.Value) bool {
 
 type NameOption func(string) string
 
-// EscapePath escapes each section of the path into "delimited identifiers"
+// EscapePath escapes each section of the path into "delimited identifiers".
 // If we didn't do this, we'd end up with a path like:
-// foo.bar.baz instead of "foo"."bar"."baz", which would cause errors
+// foo.bar.baz instead of "foo"."bar"."baz", which would cause errors.
 //
-// Reference: https://docs.snowflake.com/en/sql-reference/identifiers-syntax.html#delimited-identifiers
+// Reference: https://docs.snowflake.com/en/sql-reference/identifiers-syntax.html#delimited-identifiers.
 func EscapePath(s string) string {
 	s = strings.ReplaceAll(s, `"`, "")
 	s = strings.ReplaceAll(s, `:`, `":"`)
@@ -162,7 +169,7 @@ func EscapePath(s string) string {
 	return s
 }
 
-// NormaliseKey takes a key and attempts to normalise it to a Snowflake-friendly format
+// NormaliseKey takes a key and attempts to normalise it to a Snowflake-friendly format.
 // It will:
 //   - Convert from camelCase to SCREAMING_SNAKE_CASE
 //   - Cast to uppercase
@@ -181,7 +188,7 @@ func NormaliseKey(s string) string {
 	return s
 }
 
-// CleanTableName derives a table name from a file name in a Snowflake-friendly format
+// CleanTableName derives a table name from a file name in a Snowflake-friendly format.
 func CleanTableName(path string) string {
 	tableName := filepath.Base(path)
 	tableName = strings.ToUpper(tableName)

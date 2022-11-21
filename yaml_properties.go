@@ -9,37 +9,45 @@ import (
 	"cuelang.org/go/encoding/yaml"
 )
 
+// Test: DBT Reference: https://docs.getdbt.com/reference/resource-properties/tests.
 type Test struct {
 	Test string `yaml:"test, omitempty"`
 }
+
+// Column: DBT Reference: https://docs.getdbt.com/reference/resource-properties/columns.
 type Column struct {
 	Name        string   `yaml:"name"`
 	Description *string  `yaml:"description, omitempty"`
 	Tests       []string `yaml:"tests, omitempty"`
 }
+
+// Sources: DBT Reference: https://docs.getdbt.com/reference/dbt-jinja-functions/source.
 type Sources struct {
 	Version int      `yaml:"version"`
 	Sources []Source `yaml:"sources"`
 }
 
+// Sources: DBT Reference: https://docs.getdbt.com/reference/dbt-jinja-functions/source.
 type Source struct {
 	Name   string   `yaml:"name"`
 	Schema string   `yaml:"schema"`
 	Tables []Column `yaml:"tables, omitempty"`
 }
 
+// Models: DBT Reference: https://docs.getdbt.com/docs/dbt-cloud-apis/metadata-schema-model.
 type Models struct {
 	Version int     `yaml:"version"`
 	Models  []Model `yaml:"models"`
 }
 
+// Models: DBT Reference: https://docs.getdbt.com/docs/dbt-cloud-apis/metadata-schema-model.
 type Model struct {
 	Name        string   `yaml:"name"`
 	Description *string  `yaml:"description, omitempty"`
 	Tests       []Test   `yaml:"tests, omitempty"`
 	Columns     []Column `yaml:"columns"`
 }
-
+// GenerateProject: Generate the [Models] required in _models_schema.yaml files that help define a (potentially multi-table) DBT project.
 func GenerateProjectModel(tables []*Table) Models {
 	var models []Model
 	for _, table := range tables {
@@ -66,6 +74,8 @@ func GenerateProjectModel(tables []*Table) Models {
 	}
 }
 
+// addDescriptions: Add descriptions to the [Models] to help with documentation.
+// Only required in the public schema, these descriptions will show up in the DBT docs.
 func (m Models) addDescriptions() Models {
 	models := make([]Model, len(m.Models))
 	copy(models, m.Models)
@@ -79,7 +89,7 @@ func (m Models) addDescriptions() Models {
 	}
 	return m
 }
-
+// addPrefix: Add a prefix to the [Models] to help satisfy the name uniqueness constraints.
 func (m Models) addPrefix(prefix string) Models {
 	models := make([]Model, len(m.Models))
 	copy(models, m.Models)
@@ -91,7 +101,8 @@ func (m Models) addPrefix(prefix string) Models {
 		Models:  models,
 	}
 }
-
+// generateProjectSources: Generate the [Sources] required in _source_schema.yaml files that help define a (potentially multi-table) DBT project.
+// _source_schema.yaml files define DBT relations to the source tables to be transformed.
 func generateProjectSources(tables []*Table, projectName string) Sources {
 	var source Source
 
@@ -113,7 +124,7 @@ func generateProjectSources(tables []*Table, projectName string) Sources {
 		Sources: []Source{source},
 	}
 }
-
+// writeProjectModels: Write the [Models] to transform/_models_schema.yml and public/_models_schema respectively.
 func writeProject(c *cue.Context, models Models, sources Sources, tables []*Table) error {
 	for _, table := range tables {
 		err := writeTableModel(table)
@@ -136,6 +147,7 @@ func writeProject(c *cue.Context, models Models, sources Sources, tables []*Tabl
 	return nil
 }
 
+// writePropertyToFile: takes either a [Source] or a [Model] and writes it to file
 func writePropertyToFile[T Sources | Models](path string, c *cue.Context, t T) error {
 	encoded, err := yaml.Encode(c.Encode(t))
 	if err != nil {

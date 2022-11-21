@@ -12,6 +12,10 @@ import (
 	"github.com/go-gota/gota/dataframe"
 )
 
+// tableIterator returns a [cue.Iterator] for a given [io.Reader].
+// It will attempt to parse the [io.Reader] as a CSV, transform it into a JSON string
+// and finally parse the JSON string into a [cue.Iterator].
+// We will use this [cue.Iterator] to walk through the table values and infer the fields types.
 func tableIterator(c *cue.Context, r io.Reader) (cue.Iterator, error) {
 	buf := bytes.NewBuffer([]byte{})
 	df := dataframe.ReadCSV(r, dataframe.WithLazyQuotes(true))
@@ -23,6 +27,9 @@ func tableIterator(c *cue.Context, r io.Reader) (cue.Iterator, error) {
 	return cueValue.List()
 }
 
+// generateTables will walk through the given [inputDir] and generate the [Table]s.
+// It will return a map of *[Table]s keyed by the table name.
+// Once we have this intermediate reprsentation, we no longer need the tables on disk.
 func generateTables(fsys fs.FS, projectName string, unpackPaths ...string) ([]*Table, error) {
 	tables := []*Table{}
 	err := fs.WalkDir(fsys, ".", func(path string, info fs.DirEntry, err error) error {
@@ -50,6 +57,7 @@ func generateTables(fsys fs.FS, projectName string, unpackPaths ...string) ([]*T
 	return tables, nil
 }
 
+// generateTableFields will iterate over the CUE representation of the table data and infer the fields types.
 func generateTableFields(table *Table, c *cue.Context, unpackPaths ...string) error {
 	iterator, err := tableIterator(c, table.rawContents)
 	if err != nil {
@@ -62,6 +70,7 @@ func generateTableFields(table *Table, c *cue.Context, unpackPaths ...string) er
 	return nil
 }
 
+// writeTableModel will write a given Table to disk in its transform/public SQL representations.
 func writeTableModel(table *Table) error {
 	transformFile := fmt.Sprintf("output/transform/TRANS01_%s.sql", table.Name)
 	file, err := os.Create(transformFile)
