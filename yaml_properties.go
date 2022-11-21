@@ -47,6 +47,7 @@ type Model struct {
 	Tests       []Test   `yaml:"tests, omitempty"`
 	Columns     []Column `yaml:"columns"`
 }
+
 // GenerateProject: Generate the [Models] required in _models_schema.yaml files that help define a (potentially multi-table) DBT project.
 func GenerateProjectModel(tables []*Table) Models {
 	var models []Model
@@ -89,6 +90,7 @@ func (m Models) addDescriptions() Models {
 	}
 	return m
 }
+
 // addPrefix: Add a prefix to the [Models] to help satisfy the name uniqueness constraints.
 func (m Models) addPrefix(prefix string) Models {
 	models := make([]Model, len(m.Models))
@@ -101,6 +103,7 @@ func (m Models) addPrefix(prefix string) Models {
 		Models:  models,
 	}
 }
+
 // generateProjectSources: Generate the [Sources] required in _source_schema.yaml files that help define a (potentially multi-table) DBT project.
 // _source_schema.yaml files define DBT relations to the source tables to be transformed.
 func generateProjectSources(tables []*Table, projectName string) Sources {
@@ -124,6 +127,7 @@ func generateProjectSources(tables []*Table, projectName string) Sources {
 		Sources: []Source{source},
 	}
 }
+
 // writeProjectModels: Write the [Models] to transform/_models_schema.yml and public/_models_schema respectively.
 func writeProject(c *cue.Context, models Models, sources Sources, tables []*Table) error {
 	for _, table := range tables {

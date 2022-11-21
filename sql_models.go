@@ -67,9 +67,9 @@ func GenerateColumnsSQL(f map[string]Field) string {
 
 // writeTransformSQLModel writes a Transform SQL Model to the io.Writer.
 // Transform models include the following:
-// - A config block with tags.
-// - A list of columns to be transformed, with typecasting and key sanitisation.
-// - A source table relation statement.
+//   - A config block with tags.
+//   - A list of columns to be transformed, with typecasting and key sanitisation.
+//   - A source table relation statement.
 func writeTransformSQLModel(table Table, w io.Writer) error {
 	sqlTemplate := SQLTemplate{
 		Tags:    GenerateTagsSQL(table.Project, table.Name),
@@ -85,8 +85,9 @@ func writeTransformSQLModel(table Table, w io.Writer) error {
 
 // writePublicSQLModel writes a Public SQL Project Model to the io.Writer.
 // Public models include the following:
-// - A config block with tags.
-// - A reference to the transform table to be zero copy cloned
+//   - A config block with tags.
+//   - A reference to the transform table to be zero copy cloned
+//
 // Theoretically you could omit the public layer, and serve the transform layer directly.
 // However this could cause issues in rollback situations and opens the possibility for bad reads from upstream applications.
 func writePublicSQLModel(table Table, w io.Writer) error {

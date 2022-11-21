@@ -11,8 +11,11 @@ import (
 )
 
 // A Field represents a column and information about how it should be transformed.
+//
 // Node: Represents the post-transformation target identifier in Snowflake.
+//
 // Path: Represents the pre-transformation path to the data in the source table.
+//
 // InferType: Represents the current best guess at Snowflake type inferred from exemplars.
 type Field struct {
 	Node         string
@@ -80,9 +83,9 @@ func createProjectDirectories() error {
 // Working in the context of the current working directory as a [fs.FS]
 // and taking [os.Args] as a list of fields to unpack
 // it will generate a the following artifacts:
-// - A [transform] directory containing the DBT SQL transformations of the tables.
-// - A [public] directory containing the DBT SQL clone transforms.
-// - Schemas for source, transform, and public models.
+//   - A [transform] directory containing the DBT SQL transformations of the tables.
+//   - A [public] directory containing the DBT SQL clone transforms.
+//   - Schemas for source, transform, and public models.
 func Main() int {
 	workingDir, err := os.Getwd()
 	if err != nil {
