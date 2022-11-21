@@ -49,7 +49,7 @@ func generateProject(fsys fs.FS, projectName string, unpackPaths ...string) erro
 	return writeProject(c, models, sources, tables)
 }
 
-// createProjectDirectories will create the neccessary project directories.
+// createProjectDirectories will create the necessary project directories.
 // This is a noop if the directories already exist.
 func createProjectDirectories() error {
 	_, err := os.Stat("output")

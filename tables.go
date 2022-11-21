@@ -29,7 +29,7 @@ func tableIterator(c *cue.Context, r io.Reader) (cue.Iterator, error) {
 
 // generateTables will walk through the given [inputDir] and generate the [Table]s.
 // It will return a map of *[Table]s keyed by the table name.
-// Once we have this intermediate reprsentation, we no longer need the tables on disk.
+// Once we have this intermediate representation, we no longer need the tables on disk.
 func generateTables(fsys fs.FS, projectName string, unpackPaths ...string) ([]*Table, error) {
 	tables := []*Table{}
 	err := fs.WalkDir(fsys, ".", func(path string, info fs.DirEntry, err error) error {

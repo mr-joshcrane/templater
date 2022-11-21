@@ -30,7 +30,7 @@ Sometimes you will have column names that contain special characters that are no
 
 Sometimes you will have nested JSON data that needs to be flattened before it can be used for any real business application.
 
-Templater can be used to allieviate some of the burden here!
+Templater can be used to alleviate some of the burden here!
 
 ---
 Imagine we had a table in Snowflake called `ENERGY` and we dumped it out to a CSV file as `ENERGY.csv`:
@@ -51,7 +51,7 @@ Imagine we had a table in Snowflake called `ENERGY` and we dumped it out to a CS
 </table>
 
 
-Gross! As we can see, the format of this data leaves  much to be desired. We could munge it with DBT, but that would be a non-trivial ammount effort!
+Gross! As we can see, the format of this data leaves  much to be desired. We could munge it with DBT, but that would be a non-trivial amount effort!
 
 
 

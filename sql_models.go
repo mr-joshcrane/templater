@@ -68,7 +68,7 @@ func GenerateColumnsSQL(f map[string]Field) string {
 // writeTransformSQLModel writes a Transform SQL Model to the io.Writer.
 // Transform models include the following:
 // - A config block with tags.
-// - A list of columns to be transformed, with typecasting and key sanisation.
+// - A list of columns to be transformed, with typecasting and key sanitisation.
 // - A source table relation statement.
 func writeTransformSQLModel(table Table, w io.Writer) error {
 	sqlTemplate := SQLTemplate{
